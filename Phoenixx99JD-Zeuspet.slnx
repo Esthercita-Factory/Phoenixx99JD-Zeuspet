@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Phoenixx99JD-Zeuspet.Console/Phoenixx99JD-Zeuspet.Console.csproj" />
+    <Project Path="Phoenixx99JD-Zeuspet/Phoenixx99JD-Zeuspet.csproj" />
+  <Project Path="Phoenixx99JD-Zeuspet.Tests/Phoenixx99JD-Zeuspet.Tests.csproj" />
   </Folder>
 </Solution>
