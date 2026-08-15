@@ -20,10 +20,10 @@ public static class ConsolaUI
 
     public static void DibujarTablaClientes(List<Cliente> clientes)
     {
-        System.Console.WriteLine("ID         | Nombre             | Telefono     | Email");
-        System.Console.WriteLine(new string('-', 70));
+        System.Console.WriteLine("ID         | Nombre             | Edad | Telefono     | Email");
+        System.Console.WriteLine(new string('-', 76));
         foreach (var c in clientes)
-            System.Console.WriteLine($"{c.Id,-10} | {Truncar(c.Nombre, 18),-18} | {Truncar(c.Telefono, 12),-12} | {c.Email}");
+            System.Console.WriteLine($"{c.Id,-10} | {Truncar(c.Nombre, 18),-18} | {c.Edad,-4} | {Truncar(c.Telefono, 12),-12} | {c.Email}");
     }
 
     public static void DibujarTablaMascotas(List<Mascota> mascotas, bool mostrarDueno)
@@ -70,8 +70,9 @@ public static class ConsolaUI
         System.Console.WriteLine("1. Agregar cliente");
         System.Console.WriteLine("2. Listar clientes");
         System.Console.WriteLine("3. Buscar cliente");
-        System.Console.WriteLine("4. Eliminar cliente");
-        System.Console.WriteLine("5. Volver");
+        System.Console.WriteLine("4. Modificar cliente");
+        System.Console.WriteLine("5. Eliminar cliente");
+        System.Console.WriteLine("6. Volver");
         System.Console.Write("\nOpcion: ");
 
         switch (System.Console.ReadLine())
@@ -79,8 +80,9 @@ public static class ConsolaUI
             case "1": AgregarCliente(); break;
             case "2": ListarClientes(); break;
             case "3": BuscarCliente(); break;
-            case "4": EliminarCliente(); break;
-            case "5": break;
+            case "4": ModificarCliente(); break;
+            case "5": EliminarCliente(); break;
+            case "6": break;
             default:
                 System.Console.WriteLine("\nOpcion no valida.");
                 Pausar();
@@ -94,6 +96,14 @@ public static class ConsolaUI
         DibujarEncabezado("AGREGAR CLIENTE");
         System.Console.Write("Nombre: ");
         var nombre = System.Console.ReadLine() ?? "";
+        System.Console.Write("Edad: ");
+        var edadTexto = System.Console.ReadLine();
+        int edad;
+        while (!int.TryParse(edadTexto, out edad) || edad < 0)
+        {
+            System.Console.Write("Edad invalida. Ingrese un numero entero no negativo: ");
+            edadTexto = System.Console.ReadLine();
+        }
         System.Console.Write("Telefono: ");
         var telefono = System.Console.ReadLine() ?? "";
         System.Console.Write("Email: ");
@@ -101,7 +111,7 @@ public static class ConsolaUI
         System.Console.Write("Direccion: ");
         var direccion = System.Console.ReadLine() ?? "";
 
-        var cliente = Service.AgregarCliente(nombre, telefono, email, direccion);
+        var cliente = Service.AgregarCliente(nombre, telefono, email, direccion, edad);
         System.Console.WriteLine($"\nCliente registrado. ID: {cliente.Id}");
         Pausar();
     }
@@ -139,6 +149,48 @@ public static class ConsolaUI
         Pausar();
     }
 
+    private static void ModificarCliente()
+    {
+        System.Console.Clear();
+        DibujarEncabezado("MODIFICAR CLIENTE");
+        System.Console.Write("ID del cliente a modificar: ");
+        var id = System.Console.ReadLine() ?? "";
+
+        var cliente = Service.BuscarClientePorId(id);
+        if (cliente == null)
+        {
+            System.Console.WriteLine("\nCliente no encontrado.");
+            Pausar();
+            return;
+        }
+
+        System.Console.WriteLine($"\nDatos actuales: {cliente.Nombre} | {cliente.Edad} anios | {cliente.Telefono} | {cliente.Email} | {cliente.Direccion}");
+        System.Console.Write("\nNuevo nombre (Enter para mantener): ");
+        var nombre = System.Console.ReadLine();
+        System.Console.Write($"Nueva edad (Enter para mantener {cliente.Edad}): ");
+        var edadTexto = System.Console.ReadLine();
+        int? edadNueva = null;
+        if (!string.IsNullOrWhiteSpace(edadTexto) && int.TryParse(edadTexto, out int edadParseada) && edadParseada >= 0)
+            edadNueva = edadParseada;
+        System.Console.Write("Nuevo telefono (Enter para mantener): ");
+        var telefono = System.Console.ReadLine();
+        System.Console.Write("Nuevo email (Enter para mantener): ");
+        var email = System.Console.ReadLine();
+        System.Console.Write("Nueva direccion (Enter para mantener): ");
+        var direccion = System.Console.ReadLine();
+
+        if (Service.ModificarCliente(id,
+                string.IsNullOrWhiteSpace(nombre) ? cliente.Nombre : nombre,
+                string.IsNullOrWhiteSpace(telefono) ? cliente.Telefono : telefono,
+                string.IsNullOrWhiteSpace(email) ? cliente.Email : email,
+                string.IsNullOrWhiteSpace(direccion) ? cliente.Direccion : direccion,
+                edadNueva))
+            System.Console.WriteLine("\nCliente modificado correctamente.");
+        else
+            System.Console.WriteLine("\nNo se pudo modificar el cliente.");
+        Pausar();
+    }
+
     private static void EliminarCliente()
     {
         System.Console.Clear();
@@ -167,8 +219,9 @@ public static class ConsolaUI
         System.Console.WriteLine("1. Agregar mascota");
         System.Console.WriteLine("2. Listar todas las mascotas");
         System.Console.WriteLine("3. Listar mascotas de un cliente");
-        System.Console.WriteLine("4. Eliminar mascota");
-        System.Console.WriteLine("5. Volver");
+        System.Console.WriteLine("4. Modificar mascota");
+        System.Console.WriteLine("5. Eliminar mascota");
+        System.Console.WriteLine("6. Volver");
         System.Console.Write("\nOpcion: ");
 
         switch (System.Console.ReadLine())
@@ -176,8 +229,9 @@ public static class ConsolaUI
             case "1": AgregarMascota(); break;
             case "2": ListarMascotas(); break;
             case "3": ListarMascotasDeCliente(); break;
-            case "4": EliminarMascota(); break;
-            case "5": break;
+            case "4": ModificarMascota(); break;
+            case "5": EliminarMascota(); break;
+            case "6": break;
             default:
                 System.Console.WriteLine("\nOpcion no valida.");
                 Pausar();
@@ -254,6 +308,43 @@ public static class ConsolaUI
                     DibujarTablaMascotas(mascotas, mostrarDueno: false);
             }
         }
+        Pausar();
+    }
+
+    private static void ModificarMascota()
+    {
+        System.Console.Clear();
+        DibujarEncabezado("MODIFICAR MASCOTA");
+        System.Console.Write("ID de la mascota a modificar: ");
+        var id = System.Console.ReadLine() ?? "";
+
+        var mascota = Service.BuscarMascotaPorId(id);
+        if (mascota == null)
+        {
+            System.Console.WriteLine("\nMascota no encontrada.");
+            Pausar();
+            return;
+        }
+
+        System.Console.WriteLine($"\nDatos actuales: {mascota.Nombre} | {mascota.Especie} | {mascota.Raza} | {mascota.Edad} anios");
+        System.Console.Write("\nNuevo nombre (Enter para mantener): ");
+        var nombre = System.Console.ReadLine();
+        System.Console.Write("Nueva especie (Enter para mantener): ");
+        var especie = System.Console.ReadLine();
+        System.Console.Write("Nueva raza (Enter para mantener): ");
+        var raza = System.Console.ReadLine();
+        System.Console.Write($"Nueva edad (Enter para mantener {mascota.Edad}): ");
+        var edadTexto = System.Console.ReadLine();
+        int.TryParse(edadTexto, out int edad);
+
+        if (Service.ModificarMascota(id,
+                string.IsNullOrWhiteSpace(nombre) ? mascota.Nombre : nombre,
+                string.IsNullOrWhiteSpace(especie) ? mascota.Especie : especie,
+                string.IsNullOrWhiteSpace(raza) ? mascota.Raza : raza,
+                string.IsNullOrWhiteSpace(edadTexto) ? mascota.Edad : edad))
+            System.Console.WriteLine("\nMascota modificada correctamente.");
+        else
+            System.Console.WriteLine("\nNo se pudo modificar la mascota.");
         Pausar();
     }
 

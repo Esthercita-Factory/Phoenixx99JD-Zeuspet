@@ -1,0 +1,341 @@
+:root {
+    --primario: #2f6f5e;
+    --primario-oscuro: #245548;
+    --acento: #e8a13c;
+    --fondo: #f4f6f5;
+    --superficie: #ffffff;
+    --texto: #22312d;
+    --texto-suave: #6b7c77;
+    --borde: #dbe3e0;
+    --peligro: #c74b3f;
+    --radio: 10px;
+    --sombra: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    min-height: 100vh;
+}
+
+.cabecera {
+    background: linear-gradient(135deg, var(--primario), var(--primario-oscuro));
+    color: white;
+    padding: 20px 28px;
+    box-shadow: var(--sombra);
+}
+
+.cabecera h1 {
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+}
+
+.pestanas {
+    display: flex;
+    gap: 6px;
+    background: var(--superficie);
+    padding: 10px 28px;
+    border-bottom: 1px solid var(--borde);
+    flex-wrap: wrap;
+}
+
+.pestana {
+    border: none;
+    background: transparent;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    color: var(--texto-suave);
+    border-radius: var(--radio);
+    transition: background 0.15s, color 0.15s;
+}
+
+.pestana:hover {
+    background: var(--fondo);
+}
+
+.pestana.activa {
+    background: var(--primario);
+    color: white;
+}
+
+main {
+    padding: 24px 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.vista {
+    display: none;
+}
+
+.vista.activa {
+    display: block;
+}
+
+.vista h2 {
+    margin-bottom: 16px;
+    color: var(--primario-oscuro);
+}
+
+.tarjetas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.tarjeta {
+    background: var(--superficie);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-left: 5px solid var(--primario);
+}
+
+.tarjeta-amplia {
+    border-left-color: var(--acento);
+}
+
+.tarjeta-numero {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--primario);
+}
+
+.tarjeta-etiqueta {
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lista-especies {
+    list-style: none;
+}
+
+.lista-especies li {
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--borde);
+    display: flex;
+    justify-content: space-between;
+}
+
+.barra-acciones {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.buscador {
+    padding: 10px 14px;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    font-size: 0.95rem;
+    flex: 1;
+    min-width: 180px;
+}
+
+.btn {
+    border: none;
+    border-radius: var(--radio);
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.btn:hover {
+    filter: brightness(0.94);
+}
+
+.btn-primario {
+    background: var(--primario);
+    color: white;
+}
+
+.btn-peligro {
+    background: var(--peligro);
+    color: white;
+}
+
+.btn-editar {
+    background: var(--acento);
+    color: white;
+}
+
+.tabla {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--superficie);
+    border-radius: var(--radio);
+    overflow: hidden;
+    box-shadow: var(--sombra);
+}
+
+.tabla th,
+.tabla td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--borde);
+    font-size: 0.9rem;
+}
+
+.tabla th {
+    background: var(--fondo);
+    color: var(--texto-suave);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tabla tbody tr:hover {
+    background: #fafcfb;
+}
+
+.insignia {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #e8f4ef;
+    color: var(--primario-oscuro);
+}
+
+.vacio {
+    color: var(--texto-suave);
+    text-align: center;
+    padding: 28px;
+}
+
+.panel {
+    background: var(--superficie);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 480px;
+}
+
+.panel label {
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+    margin-top: 6px;
+}
+
+.panel select {
+    padding: 10px 14px;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    font-size: 0.95rem;
+}
+
+.panel .btn {
+    margin-top: 14px;
+}
+
+.resultado {
+    margin-top: 16px;
+    background: #e8f4ef;
+    border-left: 5px solid var(--primario);
+    padding: 16px;
+    border-radius: var(--radio);
+    max-width: 480px;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal-contenido {
+    background: var(--superficie);
+    border-radius: var(--radio);
+    padding: 28px;
+    width: 90%;
+    max-width: 460px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-cerrar {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: var(--texto-suave);
+}
+
+.modal-cerrar:hover {
+    color: var(--texto);
+}
+
+.modal-contenido h3 {
+    margin-bottom: 18px;
+    color: var(--primario-oscuro);
+}
+
+#modal-forma {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#modal-forma label {
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+}
+
+#modal-forma input,
+#modal-forma select {
+    padding: 10px 14px;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    font-size: 0.95rem;
+}
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--texto);
+    color: white;
+    padding: 12px 22px;
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    z-index: 20;
+}
+
+.toast.exito {
+    background: var(--primario);
+}
+
+.toast.error {
+    background: var(--peligro);
+}

@@ -3,4 +3,5 @@
     <Project Path="Phoenixx99JD-Zeuspet/Phoenixx99JD-Zeuspet.csproj" />
   <Project Path="Phoenixx99JD-Zeuspet.Tests/Phoenixx99JD-Zeuspet.Tests.csproj" />
   </Folder>
+  <Project Path="Phoenixx99JD-Zeuspet.Web/Phoenixx99JD-Zeuspet.Web.csproj" />
 </Solution>

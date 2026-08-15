@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clínica Veterinaria ZeusPet</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="cabecera">
+        <h1>🐾 Clínica Veterinaria ZeusPet</h1>
+    </header>
+
+    <nav class="pestanas">
+        <button class="pestana activa" data-vista="dashboard">Dashboard</button>
+        <button class="pestana" data-vista="clientes">Clientes</button>
+        <button class="pestana" data-vista="mascotas">Mascotas</button>
+        <button class="pestana" data-vista="servicios">Servicios</button>
+    </nav>
+
+    <main>
+        <section id="vista-dashboard" class="vista activa">
+            <h2>Resumen general</h2>
+            <div class="tarjetas">
+                <div class="tarjeta">
+                    <span class="tarjeta-numero" id="stat-clientes">0</span>
+                    <span class="tarjeta-etiqueta">Clientes</span>
+                </div>
+                <div class="tarjeta">
+                    <span class="tarjeta-numero" id="stat-mascotas">0</span>
+                    <span class="tarjeta-etiqueta">Mascotas</span>
+                </div>
+                <div class="tarjeta tarjeta-amplia">
+                    <span class="tarjeta-etiqueta">Mascotas por especie</span>
+                    <ul id="stat-especies" class="lista-especies"></ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="vista-clientes" class="vista">
+            <div class="barra-acciones">
+                <input type="text" id="buscador-clientes" class="buscador" placeholder="Buscar por nombre...">
+                <button class="btn btn-primario" id="btn-nuevo-cliente">+ Nuevo cliente</button>
+            </div>
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Edad</th>
+                        <th>Teléfono</th>
+                        <th>Email</th>
+                        <th>Dirección</th>
+                        <th>Mascotas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-clientes"></tbody>
+            </table>
+            <p id="vacio-clientes" class="vacio">No hay clientes registrados.</p>
+        </section>
+
+        <section id="vista-mascotas" class="vista">
+            <div class="barra-acciones">
+                <input type="text" id="buscador-mascotas" class="buscador" placeholder="Buscar por nombre...">
+                <select id="filtro-especie" class="buscador">
+                    <option value="">Todas las especies</option>
+                    <option value="Perro">Perro</option>
+                    <option value="Gato">Gato</option>
+                    <option value="Conejo">Conejo</option>
+                </select>
+                <button class="btn btn-primario" id="btn-nueva-mascota">+ Nueva mascota</button>
+            </div>
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Especie</th>
+                        <th>Raza</th>
+                        <th>Edad</th>
+                        <th>Dueño</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-mascotas"></tbody>
+            </table>
+            <p id="vacio-mascotas" class="vacio">No hay mascotas registradas.</p>
+        </section>
+
+        <section id="vista-servicios" class="vista">
+            <h2>Servicios veterinarios</h2>
+            <div class="panel">
+                <label for="servicio-tipo">Tipo de servicio</label>
+                <select id="servicio-tipo">
+                    <option value="ConsultaGeneral">Consulta General</option>
+                    <option value="Vacunacion">Vacunación</option>
+                </select>
+
+                <label for="servicio-mascota">Paciente (mascota)</label>
+                <select id="servicio-mascota"></select>
+
+                <button class="btn btn-primario" id="btn-atender">Atender</button>
+            </div>
+            <div id="resultado-servicio" class="resultado" hidden></div>
+        </section>
+    </main>
+
+    <div id="modal" class="modal" hidden>
+        <div class="modal-contenido">
+            <span class="modal-cerrar" id="modal-cerrar">&times;</span>
+            <h3 id="modal-titulo"></h3>
+            <form id="modal-forma"></form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
