@@ -1,0 +1,136 @@
+@page "/evaluaciones"
+@rendermode InteractiveServer
+@using Phoenixx99JD_Zeuspet.Web.Models
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject VeterinariaService Service
+
+<div class="zeus-shell">
+    <header class="zeus-navbar">
+        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
+        <nav class="zeus-nav" aria-label="Navegación principal">
+            @foreach (var item in Navigation)
+            {
+                @if (item == "Dashboard")
+                {
+                    <a href="/">@item</a>
+                }
+                else if (item == "Pets")
+                {
+                    <a href="/mascotas">@item</a>
+                }
+                else if (item == "Assessment")
+                {
+                    <a class="active" href="/evaluaciones">@item</a>
+                }
+                else if (item == "Activity")
+                {
+                    <a href="/actividades">@item</a>
+                }
+                else if (item == "Reports")
+                {
+                    <a href="/reportes">@item</a>
+                }
+                else
+                {
+                    <button class="zeus-nav-button" @onclick="MostrarProximamente">@item</button>
+                }
+            }
+        </nav>
+        <div class="zeus-userbar">
+            <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
+            <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
+            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
+        </div>
+    </header>
+
+    <main class="assessment-page">
+        <div class="pets-page-heading">
+            <div><p class="eyebrow">Patient wellness</p><h1>Quality of life</h1><p class="welcome-copy">Evalúa el bienestar de cada mascota y sigue su evolución.</p></div>
+        </div>
+
+        <section class="assessment-layout">
+            <section class="soft-card assessment-form-card">
+                <div class="card-heading"><div><p class="eyebrow">New assessment</p><h2>Evaluar mascota</h2></div><span class="assessment-badge"><i class="icon icon-heart-pulse"></i> 1–10</span></div>
+                <label class="assessment-label">Mascota<select class="zeus-input" @bind="MascotaSeleccionadaId" @bind:after="SeleccionarMascota"><option value="">Selecciona una mascota</option>@foreach (var mascota in Mascotas){<option value="@mascota.Id">@mascota.Nombre · @mascota.Especie</option>}</select></label>
+                @if (MascotaSeleccionadaId is null)
+                {
+                    <div class="assessment-empty"><i class="icon icon-clipboard-heart"></i><p>Selecciona una mascota para iniciar su evaluación.</p></div>
+                }
+                else
+                {
+                    <div class="assessment-fields">
+                        <label class="score-field"><span>Comportamiento <strong>@NuevaEvaluacion.Comportamiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Comportamiento" /></label>
+                        <label class="score-field"><span>Higiene <strong>@NuevaEvaluacion.Higiene</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Higiene" /></label>
+                        <label class="score-field"><span>Movimiento <strong>@NuevaEvaluacion.Movimiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Movimiento" /></label>
+                        <label class="score-field"><span>Ánimo <strong>@NuevaEvaluacion.Animo</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Animo" /></label>
+                    </div>
+                    <div class="assessment-form-footer"><span>Promedio estimado <strong>@PromedioNuevo.ToString("0.0")/10</strong></span><button class="zeus-btn-primary" @onclick="GuardarEvaluacion"><i class="icon icon-check"></i> Guardar evaluación</button></div>
+                }
+            </section>
+
+            <section class="assessment-history">
+                <div class="section-heading"><div><p class="eyebrow">Wellness history</p><h2>Historial</h2></div>@if (MascotaSeleccionadaId is not null){<span class="panel-contador">@EvaluacionesRegistradas.Count evaluaciones</span>}</div>
+                @if (MascotaSeleccionadaId is null)
+                {
+                    <div class="soft-card assessment-history-empty"><i class="icon icon-chart-no-axes-combined"></i><p>El historial aparecerá aquí.</p></div>
+                }
+                else if (EvaluacionesRegistradas.Count == 0)
+                {
+                    <div class="soft-card assessment-history-empty"><i class="icon icon-sparkles"></i><p>Aún no hay evaluaciones para esta mascota.</p></div>
+                }
+                else
+                {
+                    <div class="assessment-history-list">@foreach (var evaluacion in EvaluacionesRegistradas){<article class="soft-card evaluation-card"><div><p class="eyebrow">Evaluación</p><strong>@evaluacion.Fecha.ToString("dd/MM/yyyy HH:mm")</strong><div class="evaluation-breakdown"><span>Comportamiento <b>@evaluacion.Comportamiento</b></span><span>Higiene <b>@evaluacion.Higiene</b></span><span>Movimiento <b>@evaluacion.Movimiento</b></span><span>Ánimo <b>@evaluacion.Animo</b></span></div></div><div class="quality-score evaluation-score">@evaluacion.Promedio.ToString("0.0")<small>/10</small></div></article>}</div>
+                }
+            </section>
+        </section>
+    </main>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(ToastMessage))
+{
+    <div class="zeus-toast" role="status">@ToastMessage</div>
+}
+
+@code {
+    private readonly string[] Navigation = ["Dashboard", "Pets", "Assessment", "Activity", "Reports", "Community"];
+    private List<Mascota> Mascotas { get; set; } = [];
+    private List<EvaluacionCalidadVida> EvaluacionesRegistradas { get; set; } = [];
+    private string? MascotaSeleccionadaId { get; set; }
+    private NuevaEvaluacionForm NuevaEvaluacion { get; set; } = new();
+    private string? ToastMessage { get; set; }
+    private double PromedioNuevo => (NuevaEvaluacion.Comportamiento + NuevaEvaluacion.Higiene + NuevaEvaluacion.Movimiento + NuevaEvaluacion.Animo) / 4.0;
+
+    protected override void OnInitialized()
+    {
+        Mascotas = Service.ListarMascotas();
+    }
+
+    private void SeleccionarMascota()
+    {
+        EvaluacionesRegistradas = MascotaSeleccionadaId is null ? [] : Service.ListarEvaluacionesDeMascota(MascotaSeleccionadaId);
+        NuevaEvaluacion = new NuevaEvaluacionForm();
+    }
+
+    private async Task GuardarEvaluacion()
+    {
+        if (MascotaSeleccionadaId is null) return;
+
+        Service.AgregarEvaluacion(MascotaSeleccionadaId, NuevaEvaluacion.Comportamiento, NuevaEvaluacion.Higiene, NuevaEvaluacion.Movimiento, NuevaEvaluacion.Animo);
+        EvaluacionesRegistradas = Service.ListarEvaluacionesDeMascota(MascotaSeleccionadaId);
+        NuevaEvaluacion = new NuevaEvaluacionForm();
+        MostrarToast("Evaluación guardada correctamente.");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void MostrarProximamente() => ToastMessage = "Próximamente";
+    private void MostrarToast(string mensaje) => ToastMessage = mensaje;
+
+    private sealed class NuevaEvaluacionForm
+    {
+        public int Comportamiento { get; set; } = 5;
+        public int Higiene { get; set; } = 5;
+        public int Movimiento { get; set; } = 5;
+        public int Animo { get; set; } = 5;
+    }
+}

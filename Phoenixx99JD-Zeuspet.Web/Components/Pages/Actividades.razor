@@ -1,0 +1,109 @@
+@page "/actividades"
+@rendermode InteractiveServer
+@using Phoenixx99JD_Zeuspet.Web.Models
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject VeterinariaService Service
+
+<div class="zeus-shell">
+    <header class="zeus-navbar">
+        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
+        <nav class="zeus-nav" aria-label="Navegación principal">
+            @foreach (var item in Navigation)
+            {
+                @if (item == "Dashboard")
+                {
+                    <a href="/">@item</a>
+                }
+                else if (item == "Pets")
+                {
+                    <a href="/mascotas">@item</a>
+                }
+                else if (item == "Assessment")
+                {
+                    <a href="/evaluaciones">@item</a>
+                }
+                else if (item == "Activity")
+                {
+                    <a class="active" href="/actividades">@item</a>
+                }
+                else if (item == "Reports")
+                {
+                    <a href="/reportes">@item</a>
+                }
+                else
+                {
+                    <button class="zeus-nav-button" @onclick="MostrarProximamente">@item</button>
+                }
+            }
+        </nav>
+        <div class="zeus-userbar">
+            <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
+            <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
+            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
+        </div>
+    </header>
+
+    <main class="activities-page">
+        <div class="pets-page-heading">
+            <div><p class="eyebrow">Daily routine</p><h1>Activities</h1><p class="welcome-copy">Organiza los momentos importantes de cada mascota.</p></div>
+        </div>
+
+        <div class="activities-toolbar">
+            <label class="activity-filter">Mascota<select class="zeus-input" @bind="MascotaSeleccionadaId"><option value="">Todas las mascotas</option>@foreach (var mascota in Mascotas){<option value="@mascota.Id">@mascota.Nombre</option>}</select></label>
+            <div class="filter-tabs">@foreach (var filter in Filters){<button class="@(ActiveFilter == filter ? "selected" : "")" @onclick="() => ActiveFilter = filter">@filter</button>}</div>
+        </div>
+
+        @if (ActividadesFiltradas.Count == 0)
+        {
+            <section class="soft-card activities-empty"><i class="icon icon-calendar-off"></i><h2>No hay actividades</h2><p>No encontramos actividades con los filtros seleccionados.</p></section>
+        }
+        else
+        {
+            <div class="activity-groups">
+                @foreach (var grupo in ActividadesFiltradas.GroupBy(activity => activity.MascotaId))
+                {
+                    <section class="activity-group">
+                        <div class="section-heading"><div><p class="eyebrow">Patient routine</p><h2>@NombreMascota(grupo.Key)</h2></div><span class="panel-contador">@grupo.Count() actividades</span></div>
+                        <div class="activity-grid activity-grid-page">
+                            @foreach (var activity in grupo)
+                            {
+                                <article class="activity-card @ActivityTheme(activity)"><span class="activity-icon"><i class="icon @ActivityIcon(activity)"></i></span><i class="icon icon-arrow-up-right activity-arrow"></i><div class="activity-info"><strong>@activity.Nombre</strong><span>@activity.Hora · @activity.Grupo</span></div></article>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        }
+    </main>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(ToastMessage))
+{
+    <div class="zeus-toast" role="status">@ToastMessage</div>
+}
+
+@code {
+    private readonly string[] Navigation = ["Dashboard", "Pets", "Assessment", "Activity", "Reports", "Community"];
+    private readonly string[] Filters = ["All", "Alone", "With other pets"];
+    private string ActiveFilter { get; set; } = "All";
+    private string MascotaSeleccionadaId { get; set; } = "";
+    private List<Mascota> Mascotas { get; set; } = [];
+    private List<Actividad> TodasLasActividades { get; set; } = [];
+    private string? ToastMessage { get; set; }
+
+    private List<Actividad> ActividadesFiltradas => TodasLasActividades
+        .Where(activity => string.IsNullOrEmpty(MascotaSeleccionadaId) || activity.MascotaId == MascotaSeleccionadaId)
+        .Where(activity => ActiveFilter == "All" || activity.Grupo == ActiveFilter)
+        .ToList();
+
+    protected override void OnInitialized()
+    {
+        Mascotas = Service.ListarMascotas();
+        TodasLasActividades = Service.ListarTodasLasActividades();
+    }
+
+    private string NombreMascota(string mascotaId) => Mascotas.FirstOrDefault(mascota => mascota.Id == mascotaId)?.Nombre ?? "Mascota";
+    private string ActivityIcon(Actividad activity) => activity.Nombre.ToLowerInvariant() switch { "walking" => "icon-footprints", "training" => "icon-sparkles", "playdate" => "icon-heart", _ => "icon-star" };
+    private string ActivityTheme(Actividad activity) => activity.Nombre.ToLowerInvariant() switch { "walking" => "activity-green", "training" => "activity-orange", "playdate" => "activity-lilac", _ => "activity-green" };
+    private void MostrarProximamente() => ToastMessage = "Próximamente";
+}

@@ -1,0 +1,93 @@
+@page "/reportes"
+@rendermode InteractiveServer
+@using Phoenixx99JD_Zeuspet.Web.Models
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject VeterinariaService Service
+
+<div class="zeus-shell">
+    <header class="zeus-navbar">
+        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
+        <nav class="zeus-nav" aria-label="Navegación principal">
+            @foreach (var item in Navigation)
+            {
+                @if (item == "Dashboard")
+                {
+                    <a href="/">@item</a>
+                }
+                else if (item == "Pets")
+                {
+                    <a href="/mascotas">@item</a>
+                }
+                else if (item == "Assessment")
+                {
+                    <a href="/evaluaciones">@item</a>
+                }
+                else if (item == "Activity")
+                {
+                    <a href="/actividades">@item</a>
+                }
+                else if (item == "Reports")
+                {
+                    <a class="active" href="/reportes">@item</a>
+                }
+                else
+                {
+                    <button class="zeus-nav-button" @onclick="MostrarProximamente">@item</button>
+                }
+            }
+        </nav>
+        <div class="zeus-userbar">
+            <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
+            <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
+            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
+        </div>
+    </header>
+
+    <main class="reports-page">
+        <div class="pets-page-heading"><div><p class="eyebrow">Clinic overview</p><h1>Reports</h1><p class="welcome-copy">Una vista clara del trabajo y bienestar en ZeusPet.</p></div></div>
+
+        <section class="report-stats">
+            <article class="soft-card report-stat"><span class="report-stat-icon report-green"><i class="icon icon-users"></i></span><span class="report-stat-value">@TotalClientes</span><span class="report-stat-label">Total de clientes</span></article>
+            <article class="soft-card report-stat"><span class="report-stat-icon report-orange"><i class="icon icon-paw-print"></i></span><span class="report-stat-value">@TotalMascotas</span><span class="report-stat-label">Total de mascotas</span></article>
+            <article class="soft-card report-stat"><span class="report-stat-icon report-lilac"><i class="icon icon-calendar-check-2"></i></span><span class="report-stat-value">@TotalActividades</span><span class="report-stat-label">Actividades registradas</span></article>
+        </section>
+
+        <section class="reports-grid">
+            <article class="soft-card report-panel"><div class="section-heading"><div><p class="eyebrow">Patient distribution</p><h2>Mascotas por especie</h2></div></div><div class="species-report-list">@foreach (var species in Especies){<div class="species-report-row"><div class="species-report-title"><span class="species-report-icon">@IconoEspecie(species.Key)</span><span>@species.Key</span><strong>@species.Value</strong></div><div class="species-bar"><span style="width: @(AnchoBarra(species.Value))%"></span></div></div>}</div>@if (Especies.Count == 0){<p class="vacio-mini">No hay mascotas registradas.</p>}</article>
+            <article class="soft-card report-panel report-average"><div class="section-heading"><div><p class="eyebrow">Wellness snapshot</p><h2>Promedio de calidad de vida</h2></div></div>@if (PromedioGeneral is null){<div class="report-empty"><i class="icon icon-clipboard-heart"></i><p>Aún no hay evaluaciones cargadas.</p></div>}else{<div class="report-average-body"><div class="quality-score evaluation-score">@PromedioGeneral.Value.ToString("0.0")<small>/10</small></div><div><strong>Bienestar general</strong><p>Promedio de todas las evaluaciones registradas.</p></div></div>}</article>
+        </section>
+    </main>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(ToastMessage))
+{
+    <div class="zeus-toast" role="status">@ToastMessage</div>
+}
+
+@code {
+    private readonly string[] Navigation = ["Dashboard", "Pets", "Assessment", "Activity", "Reports", "Community"];
+    private Dictionary<string, object> Estadisticas { get; set; } = [];
+    private Dictionary<string, int> Especies { get; set; } = [];
+    private double? PromedioGeneral { get; set; }
+    private string? ToastMessage { get; set; }
+
+    private int TotalClientes => Estadisticas.TryGetValue("clientes", out var value) ? Convert.ToInt32(value) : 0;
+    private int TotalMascotas => Estadisticas.TryGetValue("mascotas", out var value) ? Convert.ToInt32(value) : 0;
+    private int TotalActividades => Estadisticas.TryGetValue("actividades", out var value) ? Convert.ToInt32(value) : 0;
+    private int MaxEspecie => Especies.Count == 0 ? 1 : Especies.Values.Max();
+
+    protected override void OnInitialized()
+    {
+        Estadisticas = Service.ObtenerEstadisticas();
+        Especies = Estadisticas.TryGetValue("especies", out var value) && value is Dictionary<string, int> especies ? especies : [];
+
+        var evaluaciones = Service.ListarMascotas()
+            .SelectMany(mascota => Service.ListarEvaluacionesDeMascota(mascota.Id))
+            .ToList();
+        PromedioGeneral = evaluaciones.Count == 0 ? null : evaluaciones.Average(evaluacion => evaluacion.Promedio);
+    }
+
+    private double AnchoBarra(int cantidad) => cantidad * 100d / MaxEspecie;
+    private string IconoEspecie(string especie) => especie.ToLowerInvariant() switch { "perro" => "🐶", "gato" => "🐱", "conejo" => "🐰", _ => "🐾" };
+    private void MostrarProximamente() => ToastMessage = "Próximamente";
+}
