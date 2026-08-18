@@ -5,17 +5,7 @@
 @inject VeterinariaService Service
 
 <div class="zeus-shell">
-    <header class="zeus-navbar">
-        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
-        <nav class="zeus-nav" aria-label="Navegación principal">
-            <a href="/">Dashboard</a><a href="/mascotas">Pets</a><a href="/evaluaciones">Assessment</a><a href="/actividades">Activity</a><a href="/reportes">Reports</a><button class="zeus-nav-button" @onclick="MostrarProximamente">Community</button>
-        </nav>
-        <div class="zeus-userbar">
-            <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
-            <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
-            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
-        </div>
-    </header>
+    <ZeusNavbar Active="Agenda" />
 
     <main class="agenda-page">
         <div class="pets-page-heading"><div><p class="eyebrow">Clinic calendar</p><h1>Agenda</h1><p class="welcome-copy">Todas las citas pendientes de tus pacientes.</p></div><a class="zeus-btn-primary" href="/">Volver al dashboard</a></div>

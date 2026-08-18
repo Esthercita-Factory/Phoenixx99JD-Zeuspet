@@ -5,43 +5,7 @@
 @inject VeterinariaService Service
 
 <div class="zeus-shell">
-    <header class="zeus-navbar">
-        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
-        <nav class="zeus-nav" aria-label="Navegación principal">
-            @foreach (var item in Navigation)
-            {
-                @if (item == "Dashboard")
-                {
-                    <a href="/">@item</a>
-                }
-                else if (item == "Pets")
-                {
-                    <a class="active" href="/mascotas">@item</a>
-                }
-                else if (item == "Assessment")
-                {
-                    <a href="/evaluaciones">@item</a>
-                }
-                else if (item == "Activity")
-                {
-                    <a href="/actividades">@item</a>
-                }
-                else if (item == "Reports")
-                {
-                    <a href="/reportes">@item</a>
-                }
-                else
-                {
-                    <button class="zeus-nav-button" @onclick="MostrarProximamente">@item</button>
-                }
-            }
-        </nav>
-        <div class="zeus-userbar">
-            <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
-            <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
-            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
-        </div>
-    </header>
+    <ZeusNavbar Active="Pets" />
 
     <main class="pets-page">
         <div class="pets-page-heading">
@@ -93,11 +57,11 @@
     </main>
 </div>
 
-@if (ModalVisible)
-{
-    <div class="zeus-modal" role="dialog" aria-modal="true" aria-labelledby="new-pet-page-title">
-        <div class="zeus-modal-content">
-            <div class="modal-title-row"><div><p class="eyebrow">Patient profile</p><h2 id="new-pet-page-title">Nueva mascota</h2></div><button class="modal-close" type="button" @onclick="CerrarModal" aria-label="Cerrar">×</button></div>
+<ZeusModal IsOpen="@ModalVisible" OnClose="CerrarModal" AriaLabelledBy="new-pet-page-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Patient profile</p><h2 id="new-pet-page-title">Nueva mascota</h2></div>
+    </HeaderContent>
+    <ChildContent>
             <form class="pet-form" @onsubmit="GuardarMascota" @onsubmit:preventDefault>
                 <fieldset class="form-section"><legend>Dueño</legend><div class="owner-mode"><label><input type="radio" name="owner-mode-page" checked="@(!NuevaMascota.UsarNuevoCliente)" @onchange="() => NuevaMascota.UsarNuevoCliente = false" /> Cliente existente</label><label><input type="radio" name="owner-mode-page" checked="@NuevaMascota.UsarNuevoCliente" @onchange="() => NuevaMascota.UsarNuevoCliente = true" /> Nuevo cliente</label></div>
                     @if (!NuevaMascota.UsarNuevoCliente)
@@ -112,23 +76,26 @@
                 <fieldset class="form-section"><legend>Mascota</legend><label>Nombre<input class="zeus-input" @bind="NuevaMascota.Nombre" required /></label><label>Especie<select class="zeus-input" @bind="NuevaMascota.Especie"><option value="Perro">Perro</option><option value="Gato">Gato</option><option value="Conejo">Conejo</option><option value="Otro">Otro</option></select></label><label>Raza<input class="zeus-input" @bind="NuevaMascota.Raza" /></label><label>Edad<input class="zeus-input" type="number" min="0" @bind="NuevaMascota.Edad" required /></label></fieldset>
                 <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModal">Cancelar</button><button class="zeus-btn-primary" type="submit">Guardar mascota</button></div>
             </form>
-        </div>
-    </div>
-}
+    </ChildContent>
+</ZeusModal>
 
-@if (ConsultaModalVisible)
-{
-    <div class="zeus-modal" role="dialog" aria-modal="true" aria-labelledby="new-consulta-title">
-        <div class="zeus-modal-content"><div class="modal-title-row"><div><p class="eyebrow">Medical history</p><h2 id="new-consulta-title">Nueva consulta</h2></div><button class="modal-close" type="button" @onclick="CerrarModalConsulta" aria-label="Cerrar">×</button></div><form class="pet-form" @onsubmit="GuardarConsulta" @onsubmit:preventDefault><label>Motivo<input class="zeus-input" @bind="NuevaConsulta.Motivo" placeholder="Ej. Revisión general" required /></label><label>Notas<textarea class="zeus-input" @bind="NuevaConsulta.Notas" rows="4" placeholder="Observaciones de la consulta"></textarea></label><div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalConsulta">Cancelar</button><button class="zeus-btn-primary" type="submit">Guardar consulta</button></div></form></div>
-    </div>
-}
+<ZeusModal IsOpen="@ConsultaModalVisible" OnClose="CerrarModalConsulta" AriaLabelledBy="new-consulta-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Medical history</p><h2 id="new-consulta-title">Nueva consulta</h2></div>
+    </HeaderContent>
+    <ChildContent>
+        <form class="pet-form" @onsubmit="GuardarConsulta" @onsubmit:preventDefault><label>Motivo<input class="zeus-input" @bind="NuevaConsulta.Motivo" placeholder="Ej. Revisión general" required /></label><label>Notas<textarea class="zeus-input" @bind="NuevaConsulta.Notas" rows="4" placeholder="Observaciones de la consulta"></textarea></label><div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalConsulta">Cancelar</button><button class="zeus-btn-primary" type="submit">Guardar consulta</button></div></form>
+    </ChildContent>
+</ZeusModal>
 
-@if (EditarModalVisible)
-{
-    <div class="zeus-modal" role="dialog" aria-modal="true" aria-labelledby="edit-pet-title">
-        <div class="zeus-modal-content"><div class="modal-title-row"><div><p class="eyebrow">Patient profile</p><h2 id="edit-pet-title">Editar datos</h2></div><button class="modal-close" type="button" @onclick="CerrarModalEditar" aria-label="Cerrar">×</button></div><form class="pet-form" @onsubmit="GuardarEdicion" @onsubmit:preventDefault><label>Peso (kg)<input class="zeus-input" type="number" step="0.1" min="0" @bind="EdicionMascota.Peso" /></label><label>Sexo<select class="zeus-input" @bind="EdicionMascota.Sexo"><option>Macho</option><option>Hembra</option></select></label><label>Estado<select class="zeus-input" @bind="EdicionMascota.Estado"><option>Activo</option><option>En tratamiento</option><option>Inactivo</option></select></label><label>Foto URL<input class="zeus-input" @bind="EdicionMascota.FotoUrl" /></label><label>Notas<textarea class="zeus-input" @bind="EdicionMascota.Notas" rows="4"></textarea></label><div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalEditar">Cancelar</button><button class="zeus-btn-primary" type="submit">Guardar cambios</button></div></form></div>
-    </div>
-}
+<ZeusModal IsOpen="@EditarModalVisible" OnClose="CerrarModalEditar" AriaLabelledBy="edit-pet-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Patient profile</p><h2 id="edit-pet-title">Editar datos</h2></div>
+    </HeaderContent>
+    <ChildContent>
+        <form class="pet-form" @onsubmit="GuardarEdicion" @onsubmit:preventDefault><label>Peso (kg)<input class="zeus-input" type="number" step="0.1" min="0" @bind="EdicionMascota.Peso" /></label><label>Sexo<select class="zeus-input" @bind="EdicionMascota.Sexo"><option>Macho</option><option>Hembra</option></select></label><label>Estado<select class="zeus-input" @bind="EdicionMascota.Estado"><option>Activo</option><option>En tratamiento</option><option>Inactivo</option></select></label><label>Foto URL<input class="zeus-input" @bind="EdicionMascota.FotoUrl" /></label><label>Notas<textarea class="zeus-input" @bind="EdicionMascota.Notas" rows="4"></textarea></label><div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalEditar">Cancelar</button><button class="zeus-btn-primary" type="submit">Guardar cambios</button></div></form>
+    </ChildContent>
+</ZeusModal>
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))
 {

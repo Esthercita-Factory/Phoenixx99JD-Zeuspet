@@ -1,0 +1,32 @@
+@namespace Phoenixx99JD_Zeuspet.Web.Components.Layout
+
+<header class="zeus-navbar">
+    <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
+    <nav class="zeus-nav" aria-label="Navegación principal">
+        <a class="@(Active == "Dashboard" ? "active" : "")" href="/">Dashboard</a>
+        <a class="@(Active == "Pets" ? "active" : "")" href="/mascotas">Pets</a>
+        <a class="@(Active == "Assessment" ? "active" : "")" href="/evaluaciones">Assessment</a>
+        <a class="@(Active == "Activity" ? "active" : "")" href="/actividades">Activity</a>
+        <a class="@(Active == "Reports" ? "active" : "")" href="/reportes">Reports</a>
+        <button class="zeus-nav-button" @onclick="MostrarProximamente">Community</button>
+    </nav>
+    <div class="zeus-userbar">
+        <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
+        <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
+        <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
+    </div>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(ToastMessage))
+{
+    <div class="zeus-toast" role="status">@ToastMessage</div>
+}
+
+@code {
+    [Parameter]
+    public string Active { get; set; } = "";
+
+    private string? ToastMessage { get; set; }
+
+    private void MostrarProximamente() => ToastMessage = "Próximamente";
+}

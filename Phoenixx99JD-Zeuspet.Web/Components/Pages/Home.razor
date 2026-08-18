@@ -7,27 +7,7 @@
 @inject IJSRuntime JS
 
 <div class="zeus-shell">
-    <header class="zeus-navbar">
-        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
-        <nav class="zeus-nav" aria-label="Navegación principal">
-            @foreach (var item in Navigation)
-            {
-                @if (item.Label == "Community")
-                {
-                    <button class="zeus-nav-button" @onclick="MostrarProximamente">@item.Label</button>
-                }
-                else
-                {
-                    <a class="@(item.Label == "Dashboard" ? "active" : "")" href="@item.Route">@item.Label</a>
-                }
-            }
-        </nav>
-        <div class="zeus-userbar">
-            <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
-            <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
-            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
-        </div>
-    </header>
+    <ZeusNavbar Active="Dashboard" />
 
     <main class="zeus-layout">
         <section class="zeus-main-column">
@@ -61,11 +41,11 @@
     </main>
 </div>
 
-@if (ActivityModalVisible)
-{
-    <div class="zeus-modal" role="dialog" aria-modal="true" aria-labelledby="new-activity-title">
-        <div class="zeus-modal-content">
-            <div class="modal-title-row"><div><p class="eyebrow">Stay on track</p><h2 id="new-activity-title">Add an activity</h2></div><button class="modal-close" type="button" @onclick="CerrarActivityModal" aria-label="Cerrar">×</button></div>
+<ZeusModal IsOpen="@ActivityModalVisible" OnClose="CerrarActivityModal" AriaLabelledBy="new-activity-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Stay on track</p><h2 id="new-activity-title">Add an activity</h2></div>
+    </HeaderContent>
+    <ChildContent>
             <form class="pet-form" @onsubmit="GuardarActividad" @onsubmit:preventDefault>
                 <label>Pet<select class="zeus-input" @bind="NuevaActividad.MascotaId">@foreach (var pet in MascotasActuales){<option value="@pet.Id">@pet.Nombre</option>}</select></label>
                 <label>Activity name<input class="zeus-input" @bind="NuevaActividad.Nombre" placeholder="Ej. Walking" required /></label>
@@ -74,15 +54,14 @@
                 <label>Group<select class="zeus-input" @bind="NuevaActividad.Grupo"><option value="Alone">Alone</option><option value="With other pets">With other pets</option></select></label>
                 <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarActivityModal">Cancel</button><button class="zeus-btn-primary" type="submit">Save activity</button></div>
             </form>
-        </div>
-    </div>
-}
+    </ChildContent>
+</ZeusModal>
 
-@if (CitaModalVisible)
-{
-    <div class="zeus-modal" role="dialog" aria-modal="true" aria-labelledby="new-appointment-title">
-        <div class="zeus-modal-content">
-            <div class="modal-title-row"><div><p class="eyebrow">Upcoming schedule</p><h2 id="new-appointment-title">Agregar cita</h2></div><button class="modal-close" type="button" @onclick="CerrarModalCita" aria-label="Cerrar">×</button></div>
+<ZeusModal IsOpen="@CitaModalVisible" OnClose="CerrarModalCita" AriaLabelledBy="new-appointment-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Upcoming schedule</p><h2 id="new-appointment-title">Agregar cita</h2></div>
+    </HeaderContent>
+    <ChildContent>
             <form class="pet-form" @onsubmit="GuardarCita" @onsubmit:preventDefault>
                 <label>Mascota<select class="zeus-input" @bind="NuevaCita.MascotaId">@foreach (var pet in TodasLasMascotas){<option value="@pet.Id">@pet.Nombre</option>}</select></label>
                 <label>Título<input class="zeus-input" @bind="NuevaCita.Titulo" placeholder="Ej. Control veterinario" required /></label>
@@ -90,9 +69,8 @@
                 <label>Tipo<select class="zeus-input" @bind="NuevaCita.Tipo"><option value="veterinaria">Veterinaria</option><option value="aseo">Aseo</option><option value="social">Social</option><option value="otro">Otro</option></select></label>
                 <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalCita">Cancelar</button><button class="zeus-btn-primary" type="submit">Guardar cita</button></div>
             </form>
-        </div>
-    </div>
-}
+    </ChildContent>
+</ZeusModal>
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))
 {

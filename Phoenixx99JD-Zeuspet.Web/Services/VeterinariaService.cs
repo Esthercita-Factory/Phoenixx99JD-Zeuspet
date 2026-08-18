@@ -118,8 +118,7 @@ public class VeterinariaService
 
     public Consulta AgregarConsulta(string mascotaId, string motivo, string notas)
     {
-        if (BuscarMascotaPorId(mascotaId) == null)
-            throw new InvalidOperationException("La mascota no existe.");
+        ValidarMascotaExiste(mascotaId);
 
         var consulta = new Consulta(GenerarId(), mascotaId, DateTime.Now, motivo, notas);
         _consultas.Add(consulta);
@@ -136,8 +135,7 @@ public class VeterinariaService
 
     public Actividad AgregarActividad(string mascotaId, string nombre, string hora, string grupo, DateTime fecha)
     {
-        if (BuscarMascotaPorId(mascotaId) == null)
-            throw new InvalidOperationException("La mascota no existe.");
+        ValidarMascotaExiste(mascotaId);
 
         var actividad = new Actividad(GenerarId(), mascotaId, nombre, hora, grupo, fecha);
         _actividades.Add(actividad);
@@ -153,8 +151,7 @@ public class VeterinariaService
 
     public RegistroPeso AgregarRegistroPeso(string mascotaId, double peso, DateTime fecha)
     {
-        if (BuscarMascotaPorId(mascotaId) == null)
-            throw new InvalidOperationException("La mascota no existe.");
+        ValidarMascotaExiste(mascotaId);
 
         var registro = new RegistroPeso(GenerarId(), mascotaId, peso, fecha);
         _registrosPeso.Add(registro);
@@ -181,8 +178,7 @@ public class VeterinariaService
         ValidarPuntaje(movimiento, nameof(movimiento));
         ValidarPuntaje(animo, nameof(animo));
 
-        if (BuscarMascotaPorId(mascotaId) == null)
-            throw new InvalidOperationException("La mascota no existe.");
+        ValidarMascotaExiste(mascotaId);
 
         var evaluacion = new EvaluacionCalidadVida(
             GenerarId(),
@@ -209,14 +205,12 @@ public class VeterinariaService
     {
         return _evaluaciones
             .Where(e => e.MascotaId == mascotaId)
-            .OrderByDescending(e => e.Fecha)
-            .FirstOrDefault();
+            .MaxBy(e => e.Fecha);
     }
 
     public CitaAgenda AgregarCita(string mascotaId, string titulo, string hora, string tipo)
     {
-        if (BuscarMascotaPorId(mascotaId) == null)
-            throw new InvalidOperationException("La mascota no existe.");
+        ValidarMascotaExiste(mascotaId);
 
         var cita = new CitaAgenda(GenerarId(), mascotaId, titulo, hora, tipo);
         _citas.Add(cita);
@@ -278,13 +272,12 @@ public class VeterinariaService
         };
     }
 
-    private static string GenerarId()
+    private static string GenerarId() => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+    private void ValidarMascotaExiste(string mascotaId)
     {
-        var random = new Random();
-        const string caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        return new string(Enumerable.Range(0, 8)
-            .Select(_ => caracteres[random.Next(caracteres.Length)])
-            .ToArray());
+        if (BuscarMascotaPorId(mascotaId) is null)
+            throw new InvalidOperationException("La mascota no existe.");
     }
 
     private static void ValidarPuntaje(int puntaje, string nombre)

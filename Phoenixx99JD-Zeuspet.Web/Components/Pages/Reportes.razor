@@ -5,43 +5,7 @@
 @inject VeterinariaService Service
 
 <div class="zeus-shell">
-    <header class="zeus-navbar">
-        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
-        <nav class="zeus-nav" aria-label="Navegación principal">
-            @foreach (var item in Navigation)
-            {
-                @if (item == "Dashboard")
-                {
-                    <a href="/">@item</a>
-                }
-                else if (item == "Pets")
-                {
-                    <a href="/mascotas">@item</a>
-                }
-                else if (item == "Assessment")
-                {
-                    <a href="/evaluaciones">@item</a>
-                }
-                else if (item == "Activity")
-                {
-                    <a href="/actividades">@item</a>
-                }
-                else if (item == "Reports")
-                {
-                    <a class="active" href="/reportes">@item</a>
-                }
-                else
-                {
-                    <button class="zeus-nav-button" @onclick="MostrarProximamente">@item</button>
-                }
-            }
-        </nav>
-        <div class="zeus-userbar">
-            <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
-            <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
-            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
-        </div>
-    </header>
+    <ZeusNavbar Active="Reports" />
 
     <main class="reports-page">
         <div class="pets-page-heading"><div><p class="eyebrow">Clinic overview</p><h1>Reports</h1><p class="welcome-copy">Una vista clara del trabajo y bienestar en ZeusPet.</p></div></div>
