@@ -54,6 +54,10 @@ function campoModal(etiqueta, nombre, tipo = "text", valor = "", requerido = tru
             <input id="${nombre}" name="${nombre}" type="${tipo}" value="${valor}" ${requerido ? "required" : ""}>`;
 }
 
+function actualizarIconos() {
+    if (window.lucide) lucide.createIcons();
+}
+
 // ============================================
 // Navegacion por pestanas
 // ============================================
@@ -72,27 +76,52 @@ document.querySelectorAll(".pestana").forEach((btn) => {
     });
 });
 
+$("accion-cliente").addEventListener("click", () => abrirModalCliente(null));
+$("accion-mascota").addEventListener("click", () => abrirModalMascota(null));
+$("accion-cita").addEventListener("click", () => toast("La agenda de citas estará disponible próximamente."));
+
 // ============================================
 // Dashboard
 // ============================================
 
 async function cargarEstadisticas() {
     try {
-        const stats = await api.get("/api/estadisticas");
+        const [stats, mascotas] = await Promise.all([
+            api.get("/api/estadisticas"),
+            api.get("/api/mascotas")
+        ]);
         $("stat-clientes").textContent = stats.clientes;
         $("stat-mascotas").textContent = stats.mascotas;
 
         const lista = $("stat-especies");
         lista.innerHTML = "";
         const especies = stats.especies || {};
+        const iconosEspecie = { Perro: "dog", Gato: "cat", Conejo: "rabbit" };
         for (const [especie, cantidad] of Object.entries(especies)) {
             const li = document.createElement("li");
-            li.innerHTML = `<span>${especie}</span><strong>${cantidad}</strong>`;
+            li.innerHTML = `<span class="especie-nombre"><span class="especie-icono"><i data-lucide="${iconosEspecie[especie] || "paw-print"}"></i></span>${especie}</span><strong class="especie-cantidad">${cantidad}</strong>`;
             lista.appendChild(li);
         }
+        renderizarPacientesRecientes(mascotas);
+        actualizarIconos();
     } catch (err) {
         toast(err.message, "error");
     }
+}
+
+function renderizarPacientesRecientes(mascotas) {
+    const contenedor = $("pacientes-recientes");
+    const recientes = mascotas.slice(-3).reverse();
+    if (recientes.length === 0) {
+        contenedor.innerHTML = `<p class="vacio-mini">Aún no hay pacientes registrados.</p>`;
+        return;
+    }
+    const iconos = { Perro: "dog", Gato: "cat", Conejo: "rabbit" };
+    contenedor.innerHTML = recientes.map((mascota) => `
+        <article class="paciente">
+            <span class="paciente-avatar"><i data-lucide="${iconos[mascota.especie] || "paw-print"}"></i></span>
+            <div><strong>${mascota.nombre}</strong><span>${mascota.raza || mascota.especie} · Paciente ZeusPet</span></div>
+        </article>`).join("");
 }
 
 // ============================================

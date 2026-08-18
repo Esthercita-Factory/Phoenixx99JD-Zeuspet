@@ -1,0 +1,82 @@
+@page "/"
+@rendermode InteractiveServer
+@using Phoenixx99JD_Zeuspet.Web.Models
+
+<div class="zeus-shell">
+    <header class="zeus-navbar">
+        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
+        <nav class="zeus-nav" aria-label="Navegación principal">
+            @foreach (var item in Navigation)
+            {
+                <a class="@(item == "Dashboard" ? "active" : "")" href="@(item == "Dashboard" ? "/" : "#")">@item</a>
+            }
+        </nav>
+        <div class="zeus-userbar">
+            <button class="round-action" aria-label="Buscar"><i class="icon icon-search"></i></button>
+            <button class="round-action notification" aria-label="Notificaciones"><i class="icon icon-bell"></i><span></span></button>
+            <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
+        </div>
+    </header>
+
+    <main class="zeus-layout">
+        <section class="zeus-main-column">
+            <div class="welcome-row">
+                <div><p class="eyebrow">Good morning, Alex</p><h1>Happy Pets,<br /><em>Happier You</em></h1><p class="welcome-copy">Let's get started! Keep every furry friend feeling their best.</p></div>
+                <div class="pets-shortcut"><div><span class="section-label">Your pets</span><div class="pet-avatars"><span class="pet-avatar pet-max">🐶</span><span class="pet-avatar pet-lulu">🐱</span><button class="add-pet" @onclick="AddPet"><i class="icon icon-plus"></i></button></div></div><span class="add-label">Add new</span></div>
+            </div>
+
+            <section class="content-section activities-section">
+                <div class="section-heading"><div><p class="eyebrow">Stay on track</p><h2>Activities</h2></div><div class="filter-tabs">@foreach (var filter in Filters){<button class="@(ActiveFilter == filter ? "selected" : "")" @onclick="() => ActiveFilter = filter">@filter</button>}</div></div>
+                <div class="activity-grid">
+                    @foreach (var activity in FilteredActivities)
+                    {
+                        <article class="activity-card @activity.Theme"><span class="activity-icon"><i class="icon @activity.Icon"></i></span><i class="icon icon-arrow-up-right activity-arrow"></i><div class="activity-info"><strong>@activity.Name</strong><span>@activity.Time</span></div></article>
+                    }
+                    <button class="activity-card add-activity" @onclick="AddActivity"><span class="add-activity-icon"><i class="icon icon-plus"></i></span><strong>Add activity</strong></button>
+                </div>
+            </section>
+
+            <div class="metrics-grid">
+                <section class="soft-card weight-card"><div class="card-heading"><h3>Weight tracker</h3><a href="#">View all <i class="icon icon-arrow-up-right"></i></a></div><div class="weight-value"><strong>44 <small>lbs</small></strong><span>↓ 2%</span></div><div class="weight-chart" aria-label="Evolución del peso"><div class="chart-line"></div><span>Nov</span><span>Dec</span><span>Jan</span></div></section>
+                <section class="soft-card quality-card"><div class="card-heading"><h3>Quality of life</h3><a href="#">View all <i class="icon icon-arrow-up-right"></i></a></div><div class="quality-body"><div class="quality-score">8.6<small>/10</small></div><div class="quality-items">@foreach (var item in QualityItems){<span><i class="icon @item.Icon"></i>@item.Name</span>}</div></div></section>
+            </div>
+        </section>
+
+        <aside class="zeus-sidebar">
+            <section class="featured-pet"><img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85" alt="Maxi, Bulldog" /><div class="pet-overlay"><div><span>Meet your pet</span><h2>Maxi</h2><p>Bulldog · 4 years old</p></div><span class="pet-alert">4</span></div></section>
+            <section class="calendar-card soft-card"><div class="card-heading"><h3>January 2025</h3><div><button aria-label="Mes anterior"><i class="icon icon-chevron-left"></i></button><button aria-label="Mes siguiente"><i class="icon icon-chevron-right"></i></button></div></div><div class="calendar-week">@foreach (var day in CalendarDays){<span>@day</span>}</div><div class="calendar-dates">@foreach (var date in CalendarDates){<span class="@(date == 15 ? "today" : date is 8 or 22 ? "marked" : "")">@date</span>}</div></section>
+            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><button class="more-button" aria-label="Más opciones"><i class="icon icon-ellipsis"></i></button></div><div class="schedule-list">@foreach (var item in Schedule){<article class="schedule-item @item.Theme"><span class="schedule-icon"><i class="icon @item.Icon"></i></span><div><strong>@item.Title</strong><span>@item.Time</span></div><i class="icon icon-chevron-right schedule-chevron"></i></article>}</div></section>
+        </aside>
+    </main>
+</div>
+
+@code {
+    private string ActiveFilter { get; set; } = "All";
+    private readonly string[] Navigation = ["Dashboard", "Pets", "Assessment", "Activity", "Reports", "Community"];
+    private readonly string[] Filters = ["All", "Alone", "With other pets"];
+    private readonly string[] CalendarDays = ["M", "T", "W", "T", "F", "S", "S"];
+    private readonly int[] CalendarDates = [30, 31, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 1, 2];
+
+    private readonly List<Activity> Activities = [
+        new("Walking", "3:00 PM", "icon-footprints", "activity-green", "Alone"),
+        new("Training", "4:00 PM", "icon-sparkles", "activity-orange", "Alone"),
+        new("Playdate", "5:00 PM", "icon-heart", "activity-lilac", "With other pets")
+    ];
+    private readonly List<ScheduleItem> Schedule = [
+        new("Veterinary Appointment", "10:00 AM", "icon-stethoscope", "schedule-red"),
+        new("Grooming", "2:00 PM", "icon-scissors", "schedule-orange"),
+        new("Playing & Socializing", "5:00 PM", "icon-gamepad-2", "schedule-green")
+    ];
+    private readonly List<QualityItem> QualityItems = [
+        new("Behavior", "icon-smile"), new("Hygiene", "icon-sparkles"), new("Movement", "icon-footprints"), new("Mood", "icon-heart")
+    ];
+    private IEnumerable<Activity> FilteredActivities => ActiveFilter == "All" ? Activities : Activities.Where(a => a.Group == ActiveFilter);
+
+    private void AddPet() => ShowNotice("The new pet form is ready to connect.");
+    private void AddActivity() => ShowNotice("The activity form is ready to connect.");
+    private void ShowNotice(string message) => Console.WriteLine(message);
+
+    private sealed record Activity(string Name, string Time, string Icon, string Theme, string Group);
+    private sealed record ScheduleItem(string Title, string Time, string Icon, string Theme);
+    private sealed record QualityItem(string Name, string Icon);
+}
