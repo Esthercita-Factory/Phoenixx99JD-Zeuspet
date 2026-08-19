@@ -1,4 +1,9 @@
 @namespace Phoenixx99JD_Zeuspet.Web.Components.Layout
+@using Phoenixx99JD_Zeuspet.Web.Models
+@using Phoenixx99JD_Zeuspet.Web.Services
+@using Microsoft.JSInterop
+@inject VeterinariaService Service
+@inject IJSRuntime JS
 
 <header class="zeus-navbar">
     <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
@@ -8,14 +13,42 @@
         <a class="@(Active == "Assessment" ? "active" : "")" href="/evaluaciones">Assessment</a>
         <a class="@(Active == "Activity" ? "active" : "")" href="/actividades">Activity</a>
         <a class="@(Active == "Reports" ? "active" : "")" href="/reportes">Reports</a>
+        <a class="@(Active == "Clients" ? "active" : "")" href="/clientes">Clients</a>
         <button class="zeus-nav-button" @onclick="MostrarProximamente">Community</button>
     </nav>
     <div class="zeus-userbar">
-        <button class="round-action" aria-label="Buscar" @onclick="MostrarProximamente"><i class="icon icon-search"></i></button>
-        <button class="round-action notification" aria-label="Notificaciones" @onclick="MostrarProximamente"><i class="icon icon-bell"></i><span></span></button>
+        <button class="round-action" aria-label="Cambiar tema" @onclick="ToggleTheme"><i class="icon @(TemaOscuro ? "icon-sun" : "icon-moon")"></i></button>
+        <div class="notification-wrap">
+            <button class="round-action notification" aria-label="Notificaciones" @onclick="ToggleNotificaciones"><i class="icon icon-bell"></i>@if (NotificacionesPendientes > 0){<span></span>}</button>
+            @if (NotificacionesVisibles)
+            {
+                <div class="notification-dropdown">
+                    <div class="notif-header"><span>Notificaciones</span><span class="notif-count">@NotificacionesPendientes pendientes</span></div>
+                    @if (NotificacionesPendientes == 0)
+                    {
+                        <div class="notif-empty">Sin notificaciones pendientes</div>
+                    }
+                    else
+                    {
+                        @foreach (var notif in Notificaciones)
+                        {
+                            <div class="notif-item">
+                                <span class="notif-icon" style="background:@notif.BackgroundColor;color:@notif.IconColor">@notif.Icono</span>
+                                <div><strong>@notif.Titulo</strong><span>@notif.Detalle</span></div>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </div>
         <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
     </div>
 </header>
+
+@if (NotificacionesVisibles)
+{
+    <div style="position:fixed;inset:0;z-index:40" @onclick="CerrarNotificaciones"></div>
+}
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))
 {
@@ -27,6 +60,78 @@
     public string Active { get; set; } = "";
 
     private string? ToastMessage { get; set; }
+    private bool NotificacionesVisibles { get; set; }
+    private bool TemaOscuro { get; set; }
+    private int NotificacionesPendientes => Notificaciones.Count;
+    private List<NotificacionItem> Notificaciones { get; set; } = [];
 
+    private bool PrimerRender { get; set; } = true;
+
+    protected override void OnInitialized()
+    {
+        CargarNotificaciones();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var saved = await JS.InvokeAsync<string>("getSavedTheme");
+        TemaOscuro = saved == "dark";
+        await JS.InvokeVoidAsync("applyTheme", TemaOscuro ? "dark" : "light");
+        PrimerRender = false;
+    }
+
+    private async Task ToggleTheme()
+    {
+        TemaOscuro = !TemaOscuro;
+        await JS.InvokeVoidAsync("applyTheme", TemaOscuro ? "dark" : "light");
+    }
+
+    private void CargarNotificaciones()
+    {
+        Notificaciones = [];
+
+        var citas = Service.ListarProximasCitas();
+        foreach (var cita in citas)
+        {
+            var mascota = Service.BuscarMascotaPorId(cita.MascotaId);
+            var nombreMascota = mascota?.Nombre ?? "Mascota";
+            var tipoColor = cita.Tipo.ToLowerInvariant() switch
+            {
+                "veterinaria" => ("#fdf0ef", "#db8b83", "\ud83c\udfe5"),
+                "aseo" => ("#fff8ed", "#cf9a5b", "\u2702\ufe0f"),
+                "social" => ("#eff8f3", "var(--mint-dark)", "\ud83c\udfae"),
+                _ => ("#f0f3f1", "var(--muted)", "\ud83d\udcc5")
+            };
+            Notificaciones.Add(new NotificacionItem(
+                $"{cita.Titulo}",
+                $"{nombreMascota} · {cita.Hora}",
+                tipoColor.Item3,
+                tipoColor.Item1,
+                tipoColor.Item2));
+        }
+
+        var mascotasActivas = Service.ListarMascotas().Where(m => m.Estado == "En tratamiento").ToList();
+        foreach (var mascota in mascotasActivas)
+        {
+            Notificaciones.Add(new NotificacionItem(
+                $"{mascota.Nombre} en tratamiento",
+                "Requiere seguimiento",
+                "\ud83d\udc96",
+                "#e8f4ed",
+                "var(--mint-dark)"));
+        }
+    }
+
+    private void ToggleNotificaciones()
+    {
+        NotificacionesVisibles = !NotificacionesVisibles;
+        if (NotificacionesVisibles) CargarNotificaciones();
+    }
+
+    private void CerrarNotificaciones() => NotificacionesVisibles = false;
     private void MostrarProximamente() => ToastMessage = "Próximamente";
+
+    private sealed record NotificacionItem(string Titulo, string Detalle, string Icono, string BackgroundColor, string IconColor);
 }

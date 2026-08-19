@@ -28,7 +28,7 @@
                         <label class="score-field"><span>Movimiento <strong>@NuevaEvaluacion.Movimiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Movimiento" /></label>
                         <label class="score-field"><span>Ánimo <strong>@NuevaEvaluacion.Animo</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Animo" /></label>
                     </div>
-                    <div class="assessment-form-footer"><span>Promedio estimado <strong>@PromedioNuevo.ToString("0.0")/10</strong></span><button class="zeus-btn-primary" @onclick="GuardarEvaluacion"><i class="icon icon-check"></i> Guardar evaluación</button></div>
+                    <div class="assessment-form-footer"><span>Promedio estimado <strong>@PromedioNuevo.ToString("0.0")/10</strong></span><button class="zeus-btn-primary" disabled="@Guardando" @onclick="GuardarEvaluacion">@if (Guardando){<span class="zeus-spinner"></span>} <i class="icon icon-check"></i> Guardar evaluación</button></div>
                 }
             </section>
 
@@ -62,7 +62,9 @@
     private List<EvaluacionCalidadVida> EvaluacionesRegistradas { get; set; } = [];
     private string? MascotaSeleccionadaId { get; set; }
     private NuevaEvaluacionForm NuevaEvaluacion { get; set; } = new();
+    private bool Guardando { get; set; }
     private string? ToastMessage { get; set; }
+    private CancellationTokenSource? ToastCts;
     private double PromedioNuevo => (NuevaEvaluacion.Comportamiento + NuevaEvaluacion.Higiene + NuevaEvaluacion.Movimiento + NuevaEvaluacion.Animo) / 4.0;
 
     protected override void OnInitialized()
@@ -80,15 +82,30 @@
     {
         if (MascotaSeleccionadaId is null) return;
 
+        Guardando = true;
+        await InvokeAsync(StateHasChanged);
+
         Service.AgregarEvaluacion(MascotaSeleccionadaId, NuevaEvaluacion.Comportamiento, NuevaEvaluacion.Higiene, NuevaEvaluacion.Movimiento, NuevaEvaluacion.Animo);
         EvaluacionesRegistradas = Service.ListarEvaluacionesDeMascota(MascotaSeleccionadaId);
         NuevaEvaluacion = new NuevaEvaluacionForm();
+        Guardando = false;
         MostrarToast("Evaluación guardada correctamente.");
         await InvokeAsync(StateHasChanged);
     }
 
     private void MostrarProximamente() => ToastMessage = "Próximamente";
-    private void MostrarToast(string mensaje) => ToastMessage = mensaje;
+
+    private void MostrarToast(string mensaje)
+    {
+        ToastCts?.Cancel();
+        ToastMessage = mensaje;
+        ToastCts = new CancellationTokenSource();
+        _ = Task.Delay(3000, ToastCts.Token).ContinueWith(_ =>
+        {
+            ToastMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
 
     private sealed class NuevaEvaluacionForm
     {

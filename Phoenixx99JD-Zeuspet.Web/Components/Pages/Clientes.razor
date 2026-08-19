@@ -1,0 +1,155 @@
+@page "/clientes"
+@rendermode InteractiveServer
+@using Phoenixx99JD_Zeuspet.Web.Models
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject VeterinariaService Service
+
+<div class="zeus-shell">
+    <ZeusNavbar Active="Clients" />
+
+    <main class="pets-page">
+        <div class="pets-page-heading">
+            <div><p class="eyebrow">Client directory</p><h1>Clientes</h1><p class="welcome-copy">Gestiona los clientes registrados en ZeusPet.</p></div>
+            <div style="display:flex;align-items:center;gap:12px">
+                <div class="search-wrap">
+                    <i class="icon icon-search"></i>
+                    <input class="search-input" placeholder="Buscar por nombre o email..." @bind="Busqueda" />
+                </div>
+                <button class="zeus-btn-primary" @onclick="AbrirModal"><i class="icon icon-plus"></i> Nuevo cliente</button>
+            </div>
+        </div>
+
+        @if (ClientesFiltrados.Count == 0 && string.IsNullOrWhiteSpace(Busqueda))
+        {
+            <section class="soft-card pets-empty"><i class="icon icon-users"></i><h2>No hay clientes registrados</h2><p>Agrega el primer cliente para comenzar.</p><button class="zeus-btn-primary" @onclick="AbrirModal">+ Nuevo cliente</button></section>
+        }
+        else if (ClientesFiltrados.Count == 0)
+        {
+            <section class="soft-card pets-empty"><i class="icon icon-search"></i><h2>Sin resultados</h2><p>No se encontraron clientes para "@Busqueda".</p></section>
+        }
+        else
+        {
+            <div class="clients-list">
+                @foreach (var cliente in ClientesFiltrados)
+                {
+                    <div class="client-card">
+                        <span class="client-avatar">@Iniciales(cliente.Nombre)</span>
+                        <div>
+                            <strong>@cliente.Nombre</strong>
+                            <span>@cliente.Email · @cliente.Telefono</span>
+                        </div>
+                        <small>@cliente.Mascotas.Count mascotas</small>
+                    </div>
+                }
+            </div>
+        }
+    </main>
+</div>
+
+<ZeusModal IsOpen="@ModalVisible" OnClose="CerrarModal" AriaLabelledBy="new-client-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Client directory</p><h2 id="new-client-title">Nuevo cliente</h2></div>
+    </HeaderContent>
+    <ChildContent>
+        <form class="pet-form" @onsubmit="GuardarCliente" @onsubmit:preventDefault>
+            <fieldset class="form-section"><legend>Cliente</legend>
+                <label>Nombre<input class="zeus-input" @bind="NuevoCliente.Nombre" required /></label>
+                <div class="form-grid"><label>Edad<input class="zeus-input" type="number" min="0" @bind="NuevoCliente.Edad" /></label><label>Teléfono<input class="zeus-input" @bind="NuevoCliente.Telefono" /></label></div>
+                <label>Email<input class="zeus-input" type="email" @bind="NuevoCliente.Email" /></label>
+                <label class="form-grid-wide">Dirección<input class="zeus-input" @bind="NuevoCliente.Direccion" /></label>
+            </fieldset>
+            <fieldset class="form-section"><legend>Mascota (obligatoria)</legend>
+                <label>Nombre de la mascota<input class="zeus-input" @bind="NuevoCliente.NombreMascota" placeholder="Ej. Luna" required /></label>
+                <div class="form-grid"><label>Especie<select class="zeus-input" @bind="NuevoCliente.EspecieMascota"><option value="Perro">Perro</option><option value="Gato">Gato</option><option value="Conejo">Conejo</option><option value="Otro">Otro</option></select></label><label>Edad<input class="zeus-input" type="number" min="0" @bind="NuevoCliente.EdadMascota" required /></label></div>
+                <label>Raza<input class="zeus-input" @bind="NuevoCliente.RazaMascota" placeholder="Opcional" /></label>
+            </fieldset>
+            <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModal">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Registrar cliente y mascota</button></div>
+        </form>
+    </ChildContent>
+</ZeusModal>
+
+@if (!string.IsNullOrWhiteSpace(ToastMessage))
+{
+    <div class="zeus-toast" role="status">@ToastMessage</div>
+}
+
+@code {
+    private List<Cliente> ClientesRegistrados { get; set; } = [];
+    private string Busqueda { get; set; } = "";
+    private bool ModalVisible { get; set; }
+    private bool Guardando { get; set; }
+    private string? ToastMessage { get; set; }
+    private CancellationTokenSource? ToastCts;
+    private NuevoClienteForm NuevoCliente { get; set; } = new();
+
+    private List<Cliente> ClientesFiltrados => string.IsNullOrWhiteSpace(Busqueda)
+        ? ClientesRegistrados
+        : ClientesRegistrados.Where(c => c.Nombre.Contains(Busqueda, StringComparison.OrdinalIgnoreCase) || c.Email.Contains(Busqueda, StringComparison.OrdinalIgnoreCase) || c.Telefono.Contains(Busqueda, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override void OnInitialized()
+    {
+        ClientesRegistrados = Service.ListarClientes();
+    }
+
+    private void AbrirModal()
+    {
+        NuevoCliente = new NuevoClienteForm();
+        ModalVisible = true;
+    }
+
+    private void CerrarModal() => ModalVisible = false;
+
+    private async Task GuardarCliente()
+    {
+        if (string.IsNullOrWhiteSpace(NuevoCliente.Nombre))
+        {
+            MostrarToast("El nombre del cliente es obligatorio.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NuevoCliente.NombreMascota))
+        {
+            MostrarToast("Debes registrar al menos una mascota.");
+            return;
+        }
+
+        Guardando = true;
+        await InvokeAsync(StateHasChanged);
+
+        var cliente = Service.AgregarCliente(NuevoCliente.Nombre.Trim(), NuevoCliente.Edad, NuevoCliente.Telefono.Trim(), NuevoCliente.Email.Trim(), NuevoCliente.Direccion.Trim());
+        Service.AgregarMascota(NuevoCliente.NombreMascota.Trim(), NuevoCliente.EspecieMascota, NuevoCliente.RazaMascota.Trim(), NuevoCliente.EdadMascota, cliente.Id);
+
+        ClientesRegistrados = Service.ListarClientes();
+        ModalVisible = false;
+        Guardando = false;
+        MostrarToast($"{cliente.Nombre} registrado con su mascota.");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string Iniciales(string nombre) => string.Join("", nombre.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+
+    private void MostrarToast(string mensaje)
+    {
+        ToastCts?.Cancel();
+        ToastMessage = mensaje;
+        ToastCts = new CancellationTokenSource();
+        _ = Task.Delay(3000, ToastCts.Token).ContinueWith(_ =>
+        {
+            ToastMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private sealed class NuevoClienteForm
+    {
+        public string Nombre { get; set; } = "";
+        public int Edad { get; set; }
+        public string Telefono { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Direccion { get; set; } = "";
+        public string NombreMascota { get; set; } = "";
+        public string EspecieMascota { get; set; } = "Perro";
+        public int EdadMascota { get; set; }
+        public string RazaMascota { get; set; } = "";
+    }
+}

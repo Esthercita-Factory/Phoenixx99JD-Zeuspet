@@ -10,6 +10,10 @@
     <main class="activities-page">
         <div class="pets-page-heading">
             <div><p class="eyebrow">Daily routine</p><h1>Activities</h1><p class="welcome-copy">Organiza los momentos importantes de cada mascota.</p></div>
+            <div class="search-wrap">
+                <i class="icon icon-search"></i>
+                <input class="search-input" placeholder="Buscar actividad..." @bind="Busqueda" />
+            </div>
         </div>
 
         <div class="activities-toolbar">
@@ -53,11 +57,14 @@
     private string MascotaSeleccionadaId { get; set; } = "";
     private List<Mascota> Mascotas { get; set; } = [];
     private List<Actividad> TodasLasActividades { get; set; } = [];
+    private string Busqueda { get; set; } = "";
     private string? ToastMessage { get; set; }
+    private CancellationTokenSource? ToastCts;
 
     private List<Actividad> ActividadesFiltradas => TodasLasActividades
         .Where(activity => string.IsNullOrEmpty(MascotaSeleccionadaId) || activity.MascotaId == MascotaSeleccionadaId)
         .Where(activity => ActiveFilter == "All" || activity.Grupo == ActiveFilter)
+        .Where(activity => string.IsNullOrWhiteSpace(Busqueda) || activity.Nombre.Contains(Busqueda, StringComparison.OrdinalIgnoreCase) || activity.Grupo.Contains(Busqueda, StringComparison.OrdinalIgnoreCase))
         .ToList();
 
     protected override void OnInitialized()
@@ -70,4 +77,16 @@
     private string ActivityIcon(Actividad activity) => activity.Nombre.ToLowerInvariant() switch { "walking" => "icon-footprints", "training" => "icon-sparkles", "playdate" => "icon-heart", _ => "icon-star" };
     private string ActivityTheme(Actividad activity) => activity.Nombre.ToLowerInvariant() switch { "walking" => "activity-green", "training" => "activity-orange", "playdate" => "activity-lilac", _ => "activity-green" };
     private void MostrarProximamente() => ToastMessage = "Próximamente";
+
+    private void MostrarToast(string mensaje)
+    {
+        ToastCts?.Cancel();
+        ToastMessage = mensaje;
+        ToastCts = new CancellationTokenSource();
+        _ = Task.Delay(3000, ToastCts.Token).ContinueWith(_ =>
+        {
+            ToastMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
 }

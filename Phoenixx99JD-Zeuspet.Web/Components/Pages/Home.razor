@@ -36,7 +36,7 @@
         <aside class="zeus-sidebar">
             <section class="featured-pet">@if (MascotaSeleccionada is not null){<img src="@FotoMascota(MascotaSeleccionada)" alt="@MascotaSeleccionada.Nombre" /><div class="pet-overlay"><div><span>Meet your pet</span><h2>@MascotaSeleccionada.Nombre</h2><p>@MascotaSeleccionada.Especie · @MascotaSeleccionada.Raza</p></div><span class="pet-alert">@ActividadesSeleccionadas.Count()</span></div>}else{<div class="featured-pet-empty">Selecciona una mascota</div>}</section>
             <section class="calendar-card soft-card"><div class="card-heading"><h3>@MonthTitle</h3><div><button aria-label="Mes anterior" @onclick="PreviousMonth"><i class="icon icon-chevron-left"></i></button><button aria-label="Mes siguiente" @onclick="NextMonth"><i class="icon icon-chevron-right"></i></button></div></div><div class="calendar-week">@foreach (var day in CalendarDays){<span>@day</span>}</div><div class="calendar-dates">@foreach (var date in CalendarDates){<span class="@CalendarDateClass(date)" @onclick="() => SeleccionarFecha(date.Date)">@date.Date.Day</span>}</div></section>
-            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><div class="schedule-menu-wrap"><button class="more-button" type="button" aria-label="Más opciones" @onclick="ToggleScheduleMenu"><i class="icon icon-ellipsis"></i></button>@if (ScheduleMenuVisible){<div class="schedule-menu"><button type="button" @onclick="AbrirModalNuevaCita"><i class="icon icon-calendar-plus"></i> Agregar cita</button><a href="/agenda" @onclick="CerrarMenus"><i class="icon icon-list"></i> Ver todas</a></div>}</div></div><div class="schedule-list">@foreach (var cita in ProximasCitas){<article class="schedule-item @CitaTheme(cita.Tipo)"><span class="schedule-icon"><i class="icon @CitaIcon(cita.Tipo)"></i></span><div><strong>@cita.Titulo</strong><span>@cita.Hora</span></div><div class="schedule-action-wrap"><button class="schedule-chevron-button" type="button" aria-label="Opciones de @cita.Titulo" @onclick="() => ToggleCitaMenu(cita.Id)"><i class="icon icon-chevron-right schedule-chevron"></i></button>@if (CitaMenuId == cita.Id){<div class="cita-context-menu"><button type="button" @onclick="() => MarcarCita(cita.Id)">Marcar como completada</button><button type="button" @onclick="() => EliminarCita(cita.Id)">Eliminar</button></div>}</div></article>}</div></section>
+            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><div class="schedule-menu-wrap"><button class="more-button" type="button" aria-label="Más opciones" @onclick="ToggleScheduleMenu"><i class="icon icon-ellipsis"></i></button>@if (ScheduleMenuVisible){<div class="schedule-menu"><button type="button" @onclick="AbrirModalNuevaCita"><i class="icon icon-calendar-plus"></i> Agregar cita</button><a href="/agenda" @onclick="CerrarMenus"><i class="icon icon-list"></i> Ver todas</a></div>}</div></div><div class="schedule-list">@foreach (var cita in ProximasCitas){<article class="schedule-item @CitaTheme(cita.Tipo)"><span class="schedule-icon"><i class="icon @CitaIcon(cita.Tipo)"></i></span><div><strong>@cita.Titulo</strong><span>@cita.Hora</span></div><div class="schedule-action-wrap"><button class="schedule-chevron-button" type="button" aria-label="Opciones de @cita.Titulo" @onclick="() => ToggleCitaMenu(cita.Id)"><i class="icon icon-chevron-right schedule-chevron"></i></button>@if (CitaMenuId == cita.Id){<div class="cita-context-menu"><button type="button" @onclick="() => MarcarCita(cita.Id)">Marcar como completada</button><button type="button" @onclick="() => SolicitarEliminarCita(cita.Id)">Eliminar</button></div>}</div></article>}</div></section>
         </aside>
     </main>
 </div>
@@ -52,7 +52,7 @@
                 <label>Time<input class="zeus-input" @bind="NuevaActividad.Hora" placeholder="Ej. 6:00 PM" required /></label>
                 <label>Date<input class="zeus-input" type="date" @bind="NuevaActividad.Fecha" /></label>
                 <label>Group<select class="zeus-input" @bind="NuevaActividad.Grupo"><option value="Alone">Alone</option><option value="With other pets">With other pets</option></select></label>
-                <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarActivityModal">Cancel</button><button class="zeus-btn-primary" type="submit">Save activity</button></div>
+                <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarActivityModal">Cancel</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Save activity</button></div>
             </form>
     </ChildContent>
 </ZeusModal>
@@ -67,10 +67,21 @@
                 <label>Título<input class="zeus-input" @bind="NuevaCita.Titulo" placeholder="Ej. Control veterinario" required /></label>
                 <label>Hora<input class="zeus-input" @bind="NuevaCita.Hora" placeholder="Ej. 10:00 AM" required /></label>
                 <label>Tipo<select class="zeus-input" @bind="NuevaCita.Tipo"><option value="veterinaria">Veterinaria</option><option value="aseo">Aseo</option><option value="social">Social</option><option value="otro">Otro</option></select></label>
-                <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalCita">Cancelar</button><button class="zeus-btn-primary" type="submit">Guardar cita</button></div>
+                <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalCita">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Guardar cita</button></div>
             </form>
     </ChildContent>
 </ZeusModal>
+
+@if (CitaEliminarId is not null)
+{
+    <div class="zeus-modal" role="dialog" aria-modal="true">
+        <div class="zeus-modal-content" style="max-width:380px">
+            <div class="modal-title-row"><div><p class="eyebrow">Confirmar</p><h2 style="font-size:1.1rem">¿Eliminar esta cita?</h2></div><button class="modal-close" type="button" @onclick="CancelarEliminarCita" aria-label="Cerrar">×</button></div>
+            <p style="margin:0 0 18px;color:var(--muted);font-size:.75rem">Esta acción no se puede deshacer.</p>
+            <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CancelarEliminarCita">Cancelar</button><button class="zeus-btn-primary" style="background:#c55d5d;border-color:#c55d5d" @onclick="EliminarCitaConfirmada"><i class="icon icon-trash-2"></i> Sí, eliminar</button></div>
+        </div>
+    </div>
+}
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))
 {
@@ -89,27 +100,19 @@
     private bool ActivityModalVisible { get; set; }
     private bool CitaModalVisible { get; set; }
     private bool ScheduleMenuVisible { get; set; }
+    private bool Guardando { get; set; }
     private string? CitaMenuId { get; set; }
+    private string? CitaEliminarId { get; set; }
     private string? ToastMessage { get; set; }
+    private CancellationTokenSource? ToastCts;
     private DateTime FechaSeleccionada = DateTime.Today;
     private bool GraficosPendientes;
-    private readonly NavigationItem[] Navigation = [
-        new("Dashboard", "/"),
-        new("Pets", "/mascotas"),
-        new("Assessment", "/evaluaciones"),
-        new("Activity", "/actividades"),
-        new("Reports", "/reportes"),
-        new("Community", null)
-    ];
     private readonly string[] Filters = ["All", "Alone", "With other pets"];
     private readonly string[] CalendarDays = ["M", "T", "W", "T", "F", "S", "S"];
     private DateTime CurrentMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private string MonthTitle => CurrentMonth.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
     private IReadOnlyList<CalendarCell> CalendarDates => BuildCalendarDates();
 
-    private readonly List<QualityItem> QualityItems = [
-        new("Behavior", "icon-smile"), new("Hygiene", "icon-sparkles"), new("Movement", "icon-footprints"), new("Mood", "icon-heart")
-    ];
     private Mascota? MascotaSeleccionada => MascotasActuales.FirstOrDefault(mascota => mascota.Id == MascotaSeleccionadaId);
     private IEnumerable<Actividad> ActividadesSeleccionadas => MascotaSeleccionadaId is null ? [] : Service.ListarActividadesDeMascota(MascotaSeleccionadaId);
     private IEnumerable<Actividad> FilteredActivities => MascotaSeleccionadaId is null ? [] : ActividadesSeleccionadas.Where(a => a.Fecha.Date == FechaSeleccionada.Date && (ActiveFilter == "All" || a.Grupo == ActiveFilter));
@@ -200,10 +203,10 @@
 
     private string IconoEspecie(string especie) => especie.ToLowerInvariant() switch
     {
-        "perro" => "🐶",
-        "gato" => "🐱",
-        "conejo" => "🐰",
-        _ => "🐾"
+        "perro" => "\ud83d\udc36",
+        "gato" => "\ud83d\udc31",
+        "conejo" => "\ud83d\udc30",
+        _ => "\ud83d\udc3e"
     };
 
     private string FotoMascota(Mascota mascota) => !string.IsNullOrWhiteSpace(mascota.FotoUrl) ? mascota.FotoUrl : mascota.Especie.ToLowerInvariant() switch
@@ -213,7 +216,18 @@
         _ => "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85"
     };
 
-    private void MostrarToast(string mensaje) => ToastMessage = mensaje;
+    private void MostrarToast(string mensaje)
+    {
+        ToastCts?.Cancel();
+        ToastMessage = mensaje;
+        ToastCts = new CancellationTokenSource();
+        _ = Task.Delay(3000, ToastCts.Token).ContinueWith(_ =>
+        {
+            ToastMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
     private void MostrarProximamente() => MostrarToast("Próximamente");
     private void ToggleScheduleMenu()
     {
@@ -246,12 +260,23 @@
         StateHasChanged();
     }
 
-    private void EliminarCita(string citaId)
+    private void SolicitarEliminarCita(string citaId)
     {
-        Service.EliminarCita(citaId);
         CitaMenuId = null;
+        CitaEliminarId = citaId;
+    }
+
+    private void CancelarEliminarCita() => CitaEliminarId = null;
+
+    private async Task EliminarCitaConfirmada()
+    {
+        if (CitaEliminarId is null) return;
+
+        Service.EliminarCita(CitaEliminarId);
+        CitaEliminarId = null;
         CargarCitas();
-        StateHasChanged();
+        MostrarToast("Cita eliminada correctamente.");
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task GuardarCita()
@@ -262,9 +287,13 @@
             return;
         }
 
+        Guardando = true;
+        await InvokeAsync(StateHasChanged);
+
         Service.AgregarCita(NuevaCita.MascotaId, NuevaCita.Titulo.Trim(), NuevaCita.Hora.Trim(), NuevaCita.Tipo);
         CargarCitas();
         CitaModalVisible = false;
+        Guardando = false;
         MostrarToast("Cita agregada correctamente.");
         await InvokeAsync(StateHasChanged);
     }
@@ -306,10 +335,14 @@
             return;
         }
 
+        Guardando = true;
+        await InvokeAsync(StateHasChanged);
+
         MascotaSeleccionadaId = NuevaActividad.MascotaId;
         Service.AgregarActividad(MascotaSeleccionadaId, NuevaActividad.Nombre.Trim(), NuevaActividad.Hora.Trim(), NuevaActividad.Grupo, NuevaActividad.Fecha);
         GraficosPendientes = true;
         ActivityModalVisible = false;
+        Guardando = false;
         MostrarToast("Actividad agregada correctamente.");
         await InvokeAsync(StateHasChanged);
     }
@@ -330,10 +363,6 @@
         _ => "activity-green"
     };
 
-    private void ShowNotice(string message) => Console.WriteLine(message);
-
-    private sealed record QualityItem(string Name, string Icon);
-    private sealed record NavigationItem(string Label, string? Route);
     private sealed record CalendarCell(DateTime Date, bool IsCurrentMonth);
     private sealed class NuevaActividadForm
     {

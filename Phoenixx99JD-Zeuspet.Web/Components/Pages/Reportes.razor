@@ -29,7 +29,6 @@
 }
 
 @code {
-    private readonly string[] Navigation = ["Dashboard", "Pets", "Assessment", "Activity", "Reports", "Community"];
     private Dictionary<string, object> Estadisticas { get; set; } = [];
     private Dictionary<string, int> Especies { get; set; } = [];
     private double? PromedioGeneral { get; set; }
@@ -52,6 +51,5 @@
     }
 
     private double AnchoBarra(int cantidad) => cantidad * 100d / MaxEspecie;
-    private string IconoEspecie(string especie) => especie.ToLowerInvariant() switch { "perro" => "🐶", "gato" => "🐱", "conejo" => "🐰", _ => "🐾" };
-    private void MostrarProximamente() => ToastMessage = "Próximamente";
+    private string IconoEspecie(string especie) => especie.ToLowerInvariant() switch { "perro" => "\ud83d\udc36", "gato" => "\ud83d\udc31", "conejo" => "\ud83d\udc30", _ => "\ud83d\udc3e" };
 }
