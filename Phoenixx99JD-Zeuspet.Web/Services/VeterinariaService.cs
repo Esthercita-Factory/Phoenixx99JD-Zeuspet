@@ -12,6 +12,8 @@ public class VeterinariaService
     private readonly List<CitaAgenda> _citas = [];
     private readonly List<Consulta> _consultas = [];
     private readonly List<RegistroPeso> _registrosPeso = [];
+    private readonly List<PublicacionComunidad> _publicaciones = [];
+    private readonly List<ComentarioComunidad> _comentariosComunidad = [];
     private readonly Dictionary<string, Cliente> _clientesPorId = [];
 
     public VeterinariaService()
@@ -64,13 +66,26 @@ public class VeterinariaService
 
     public Mascota? BuscarMascotaPorId(string id) => _mascotas.FirstOrDefault(m => m.Id == id);
 
-    public Mascota AgregarMascota(string nombre, string especie, string raza, int edad, string clienteId)
+    public bool ExisteNumeroIdentificacion(string numero)
+    {
+        return _mascotas.Any(m => string.Equals(m.NumeroIdentificacion, numero, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public Mascota AgregarMascota(string nombre, string especie, string raza, int edad, string clienteId, string numeroIdentificacion, string fotoUrl)
     {
         var cliente = BuscarClientePorId(clienteId);
         if (cliente == null)
             throw new InvalidOperationException("El cliente no existe.");
 
-        var mascota = new Mascota(GenerarId(), nombre, especie, raza, edad, clienteId);
+        if (ExisteNumeroIdentificacion(numeroIdentificacion))
+            throw new InvalidOperationException("El número de identificación ya está registrado.");
+
+        var mascota = new Mascota(GenerarId(), nombre, especie, raza, edad, clienteId)
+        {
+            NumeroIdentificacion = numeroIdentificacion,
+            FotoUrl = fotoUrl
+        };
+
         _mascotas.Add(mascota);
         cliente.Mascotas.Add(mascota);
         return mascota;
@@ -248,6 +263,81 @@ public class VeterinariaService
         return cita != null && _citas.Remove(cita);
     }
 
+    public PublicacionComunidad CrearPublicacion(
+        string clienteId,
+        string? mascotaId,
+        string contenido,
+        string categoria,
+        bool esVeterinario)
+    {
+        var publicacion = new PublicacionComunidad(
+            GenerarId(),
+            clienteId,
+            mascotaId,
+            contenido,
+            categoria,
+            DateTime.Now,
+            esVeterinario);
+
+        _publicaciones.Add(publicacion);
+        return publicacion;
+    }
+
+    public List<PublicacionComunidad> ListarPublicaciones() =>
+        _publicaciones
+            .OrderByDescending(publicacion => publicacion.Fecha)
+            .ToList();
+
+    public List<PublicacionComunidad> ListarPublicacionesPorCategoria(string categoria) =>
+        _publicaciones
+            .Where(publicacion => string.Equals(publicacion.Categoria, categoria, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(publicacion => publicacion.Fecha)
+            .ToList();
+
+    public int ToggleLike(string publicacionId, string clienteId)
+    {
+        var publicacion = BuscarPublicacion(publicacionId);
+        if (publicacion is null)
+            throw new InvalidOperationException("La publicación no existe.");
+
+        if (!publicacion.LikesDe.Remove(clienteId))
+            publicacion.LikesDe.Add(clienteId);
+
+        return publicacion.LikesDe.Count;
+    }
+
+    public ComentarioComunidad AgregarComentario(string publicacionId, string clienteId, string contenido)
+    {
+        if (BuscarPublicacion(publicacionId) is null)
+            throw new InvalidOperationException("La publicación no existe.");
+
+        var comentario = new ComentarioComunidad(
+            GenerarId(),
+            publicacionId,
+            clienteId,
+            contenido,
+            DateTime.Now);
+
+        _comentariosComunidad.Add(comentario);
+        return comentario;
+    }
+
+    public List<ComentarioComunidad> ListarComentarios(string publicacionId) =>
+        _comentariosComunidad
+            .Where(comentario => comentario.PublicacionId == publicacionId)
+            .OrderBy(comentario => comentario.Fecha)
+            .ToList();
+
+    public bool EliminarPublicacion(string id)
+    {
+        var publicacion = BuscarPublicacion(id);
+        if (publicacion is null) return false;
+
+        _publicaciones.Remove(publicacion);
+        _comentariosComunidad.RemoveAll(comentario => comentario.PublicacionId == id);
+        return true;
+    }
+
     public string AtenderServicio(string tipo, string nombreMascota)
     {
         ServicioVeterinario servicio = tipo switch
@@ -273,6 +363,9 @@ public class VeterinariaService
     }
 
     private static string GenerarId() => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+    private PublicacionComunidad? BuscarPublicacion(string id) =>
+        _publicaciones.FirstOrDefault(publicacion => publicacion.Id == id);
 
     private void ValidarMascotaExiste(string mascotaId)
     {
@@ -301,15 +394,15 @@ public class VeterinariaService
         var c4 = AgregarCliente("Maria Fernanda Ruiz", 28, "3157778899", "mfr@email.com", "Calle 100 #20-15");
         var c5 = AgregarCliente("Pedro Gomez", 39, "3014445566", "pedro.gomez@email.com", "Transversal 8 #45-60");
 
-        var zeus = AgregarMascota("Zeus", "Perro", "Pastor Aleman", 4, c1.Id);
-        var luna = AgregarMascota("Luna", "Gato", "Siames", 2, c1.Id);
-        AgregarMascota("Rocky", "Perro", "Bulldog Frances", 3, c2.Id);
-        AgregarMascota("Mimi", "Gato", "Persa", 5, c2.Id);
-        var max = AgregarMascota("Max", "Perro", "Golden Retriever", 6, c3.Id);
-        AgregarMascota("Coco", "Perro", "Chihuahua", 1, c4.Id);
-        AgregarMascota("Pelusa", "Gato", "Angora", 3, c4.Id);
-        AgregarMascota("Toby", "Perro", "Labrador", 7, c5.Id);
-        AgregarMascota("Nina", "Conejo", "Mini Lop", 2, c5.Id);
+        var zeus = AgregarMascota("Zeus", "Perro", "Pastor Aleman", 4, c1.Id, "Z-001", "");
+        var luna = AgregarMascota("Luna", "Gato", "Siames", 2, c1.Id, "L-002", "");
+        AgregarMascota("Rocky", "Perro", "Bulldog Frances", 3, c2.Id, "R-003", "");
+        AgregarMascota("Mimi", "Gato", "Persa", 5, c2.Id, "M-004", "");
+        var max = AgregarMascota("Max", "Perro", "Golden Retriever", 6, c3.Id, "MX-005", "");
+        AgregarMascota("Coco", "Perro", "Chihuahua", 1, c4.Id, "C-006", "");
+        AgregarMascota("Pelusa", "Gato", "Angora", 3, c4.Id, "P-007", "");
+        AgregarMascota("Toby", "Perro", "Labrador", 7, c5.Id, "TB-008", "");
+        AgregarMascota("Nina", "Conejo", "Mini Lop", 2, c5.Id, "NN-009", "");
 
         ActualizarDatosMascota(zeus.Id, 24.5, "Macho", "Activo", "Tiene mucha energía y disfruta los paseos largos.", "");
         ActualizarDatosMascota(luna.Id, 4.2, "Hembra", "Activo", "Sensibilidad digestiva. Prefiere alimento húmedo.", "");
@@ -330,5 +423,42 @@ public class VeterinariaService
         AgregarCita(zeus.Id, "Veterinary Appointment", "10:00 AM", "veterinaria");
         AgregarCita(_mascotas.First(m => m.Nombre == "Luna").Id, "Grooming", "2:00 PM", "aseo");
         AgregarCita(_mascotas.First(m => m.Nombre == "Max").Id, "Playing & Socializing", "5:00 PM", "social");
+
+        var tipZeus = CrearPublicacion(
+            c1.Id,
+            zeus.Id,
+            "Un paseo corto después de comer ayuda a Zeus a mantenerse activo y tranquilo.",
+            "Tip",
+            false);
+        var preguntaAlimento = CrearPublicacion(
+            c2.Id,
+            luna.Id,
+            "¿Qué alimento húmedo les ha funcionado mejor a sus gatos con sensibilidad digestiva?",
+            "Pregunta",
+            false);
+        CrearPublicacion(
+            c3.Id,
+            max.Id,
+            "Max alcanzó su peso recomendado y volvió a disfrutar sus caminatas largas.",
+            "Logro",
+            false);
+        var anuncioClinica = CrearPublicacion(
+            c4.Id,
+            null,
+            "Este viernes tendremos jornada de vacunación con cupos limitados.",
+            "Anuncio",
+            true);
+        CrearPublicacion(
+            c5.Id,
+            null,
+            "Recordatorio: revisen las uñas y el estado de las almohadillas después de cada paseo.",
+            "Tip",
+            true);
+
+        tipZeus.LikesDe.Add(c2.Id);
+        tipZeus.LikesDe.Add(c3.Id);
+        anuncioClinica.LikesDe.Add(c1.Id);
+        AgregarComentario(preguntaAlimento.Id, c1.Id, "A Luna le ha funcionado muy bien una fórmula de salmón.");
+        AgregarComentario(preguntaAlimento.Id, c4.Id, "Lo ideal es hacer el cambio de alimento gradualmente.");
     }
 }

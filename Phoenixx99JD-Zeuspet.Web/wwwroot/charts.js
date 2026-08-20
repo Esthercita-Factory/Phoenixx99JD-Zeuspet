@@ -53,7 +53,7 @@
         });
     };
 
-    window.renderRadarChart = function (canvasId, labels, data) {
+    window.renderRadarChart = function (canvasId, labels, data, compact = false) {
         destroyPreviousChart(canvasId);
 
         const canvas = document.getElementById(canvasId);
@@ -73,9 +73,9 @@
                     data,
                     borderColor: accent,
                     backgroundColor: `rgba(${dark ? "108,203,165" : "57,124,102"},${fillAlpha})`,
-                    borderWidth: 2.5,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
+                    borderWidth: compact ? 1.5 : 2.5,
+                    pointRadius: compact ? 2 : 4,
+                    pointHoverRadius: compact ? 3 : 6,
                     pointBackgroundColor: accent,
                     pointBorderColor: dark ? "#162420" : "#ffffff",
                     pointBorderWidth: 2
@@ -90,9 +90,9 @@
                         beginAtZero: true,
                         min: 0,
                         max: 10,
-                        grid: { color: gridCol, lineWidth: 1 },
-                        angleLines: { color: gridCol, lineWidth: 1 },
-                        pointLabels: { color: labelColor, font: { size: 11, weight: "600" } },
+                        grid: { color: gridCol, lineWidth: compact ? 0.7 : 1 },
+                        angleLines: { color: gridCol, lineWidth: compact ? 0.7 : 1 },
+                        pointLabels: { display: !compact, color: labelColor, font: { size: compact ? 8 : 11, weight: "600" } },
                         ticks: { display: false }
                     }
                 }

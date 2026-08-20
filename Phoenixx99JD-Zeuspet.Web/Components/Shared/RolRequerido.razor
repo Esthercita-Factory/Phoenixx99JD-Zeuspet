@@ -1,0 +1,61 @@
+@implements IDisposable
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject SesionService Sesion
+@inject NavigationManager Navigation
+
+@if (!TieneSesion)
+{
+    <div class="zeus-route-redirect" aria-live="polite">
+        <div class="zeus-loading-bar"></div>
+    </div>
+}
+else if (!TieneAcceso)
+{
+    <div class="soft-card" style="max-width: 500px; margin: 80px auto; padding: 40px; text-align: center;">
+        <p>@MensajeAcceso</p>
+        <button class="zeus-btn-primary" type="button" @onclick="VolverAlDashboard">Volver al dashboard</button>
+    </div>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter]
+    public string Rol { get; set; } = "Cualquiera";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool TieneSesion => !string.IsNullOrWhiteSpace(Sesion.Rol);
+    private bool TieneAcceso => Rol == "Cualquiera" || Rol == Sesion.Rol;
+    private bool Redireccionando { get; set; }
+    private string MensajeAcceso => Rol == "Veterinario"
+        ? "Esta sección es exclusiva para veterinarios"
+        : "Esta sección es exclusiva para usuarios";
+
+    protected override void OnInitialized()
+    {
+        Sesion.OnCambio += ActualizarEstado;
+        RedirigirSiEsNecesario();
+    }
+
+    protected override void OnParametersSet() => RedirigirSiEsNecesario();
+
+    public void Dispose()
+    {
+        Sesion.OnCambio -= ActualizarEstado;
+    }
+
+    private void RedirigirSiEsNecesario()
+    {
+        if (TieneSesion || Redireccionando) return;
+
+        Redireccionando = true;
+        Navigation.NavigateTo("/", replace: true);
+    }
+
+    private void ActualizarEstado() => _ = InvokeAsync(StateHasChanged);
+    private void VolverAlDashboard() => Navigation.NavigateTo("/dashboard");
+}

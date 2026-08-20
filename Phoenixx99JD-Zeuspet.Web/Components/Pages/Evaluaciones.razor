@@ -3,10 +3,12 @@
 @using Phoenixx99JD_Zeuspet.Web.Models
 @using Phoenixx99JD_Zeuspet.Web.Services
 @inject VeterinariaService Service
+@inject SesionService Sesion
 
 <div class="zeus-shell">
     <ZeusNavbar Active="Assessment" />
 
+    <RolRequerido Rol="Cualquiera">
     <main class="assessment-page">
         <div class="pets-page-heading">
             <div><p class="eyebrow">Patient wellness</p><h1>Quality of life</h1><p class="welcome-copy">Evalúa el bienestar de cada mascota y sigue su evolución.</p></div>
@@ -14,21 +16,35 @@
 
         <section class="assessment-layout">
             <section class="soft-card assessment-form-card">
-                <div class="card-heading"><div><p class="eyebrow">New assessment</p><h2>Evaluar mascota</h2></div><span class="assessment-badge"><i class="icon icon-heart-pulse"></i> 1–10</span></div>
-                <label class="assessment-label">Mascota<select class="zeus-input" @bind="MascotaSeleccionadaId" @bind:after="SeleccionarMascota"><option value="">Selecciona una mascota</option>@foreach (var mascota in Mascotas){<option value="@mascota.Id">@mascota.Nombre · @mascota.Especie</option>}</select></label>
-                @if (MascotaSeleccionadaId is null)
+                @if (Sesion.Rol == "Veterinario")
                 {
-                    <div class="assessment-empty"><i class="icon icon-clipboard-heart"></i><p>Selecciona una mascota para iniciar su evaluación.</p></div>
+                    <div class="card-heading"><div><p class="eyebrow">New assessment</p><h2>Evaluar mascota</h2></div><span class="assessment-badge"><i class="icon icon-heart-pulse"></i> 1–10</span></div>
                 }
                 else
                 {
-                    <div class="assessment-fields">
-                        <label class="score-field"><span>Comportamiento <strong>@NuevaEvaluacion.Comportamiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Comportamiento" /></label>
-                        <label class="score-field"><span>Higiene <strong>@NuevaEvaluacion.Higiene</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Higiene" /></label>
-                        <label class="score-field"><span>Movimiento <strong>@NuevaEvaluacion.Movimiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Movimiento" /></label>
-                        <label class="score-field"><span>Ánimo <strong>@NuevaEvaluacion.Animo</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Animo" /></label>
-                    </div>
-                    <div class="assessment-form-footer"><span>Promedio estimado <strong>@PromedioNuevo.ToString("0.0")/10</strong></span><button class="zeus-btn-primary" disabled="@Guardando" @onclick="GuardarEvaluacion">@if (Guardando){<span class="zeus-spinner"></span>} <i class="icon icon-check"></i> Guardar evaluación</button></div>
+                    <div class="card-heading"><div><p class="eyebrow">Patient history</p><h2>Ver historial</h2></div></div>
+                }
+                <label class="assessment-label">Mascota<select class="zeus-input" @bind="MascotaSeleccionadaId" @bind:after="SeleccionarMascota"><option value="">Selecciona una mascota</option>@foreach (var mascota in Mascotas){<option value="@mascota.Id">@mascota.Nombre · @mascota.Especie</option>}</select></label>
+                @if (Sesion.Rol == "Veterinario")
+                {
+                    @if (MascotaSeleccionadaId is null)
+                    {
+                        <div class="assessment-empty"><i class="icon icon-clipboard-heart"></i><p>Selecciona una mascota para iniciar su evaluación.</p></div>
+                    }
+                    else
+                    {
+                        <div class="assessment-fields">
+                            <label class="score-field"><span>Comportamiento <strong>@NuevaEvaluacion.Comportamiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Comportamiento" /></label>
+                            <label class="score-field"><span>Higiene <strong>@NuevaEvaluacion.Higiene</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Higiene" /></label>
+                            <label class="score-field"><span>Movimiento <strong>@NuevaEvaluacion.Movimiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Movimiento" /></label>
+                            <label class="score-field"><span>Ánimo <strong>@NuevaEvaluacion.Animo</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Animo" /></label>
+                        </div>
+                        <div class="assessment-form-footer"><span>Promedio estimado <strong>@PromedioNuevo.ToString("0.0")/10</strong></span><button class="zeus-btn-primary" disabled="@Guardando" @onclick="GuardarEvaluacion">@if (Guardando){<span class="zeus-spinner"></span>} <i class="icon icon-check"></i> Guardar evaluación</button></div>
+                    }
+                }
+                else if (MascotaSeleccionadaId is null)
+                {
+                    <div class="assessment-empty"><i class="icon icon-clipboard-list"></i><p>Selecciona una mascota para consultar su historial.</p></div>
                 }
             </section>
 
@@ -49,6 +65,7 @@
             </section>
         </section>
     </main>
+    </RolRequerido>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))
@@ -80,7 +97,7 @@
 
     private async Task GuardarEvaluacion()
     {
-        if (MascotaSeleccionadaId is null) return;
+        if (Sesion.Rol != "Veterinario" || MascotaSeleccionadaId is null) return;
 
         Guardando = true;
         await InvokeAsync(StateHasChanged);

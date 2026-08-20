@@ -1,0 +1,46 @@
+@implements IDisposable
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject SesionService Sesion
+@inject NavigationManager Navigation
+
+@if (TieneSesion)
+{
+    @ChildContent
+}
+else
+{
+    <div class="zeus-route-redirect" aria-live="polite">
+        <div class="zeus-loading-bar"></div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool TieneSesion => !string.IsNullOrWhiteSpace(Sesion.Rol);
+    private bool Redireccionando { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Sesion.OnCambio += ActualizarEstado;
+        RedirigirSiEsNecesario();
+    }
+
+    protected override void OnParametersSet() => RedirigirSiEsNecesario();
+
+    public void Dispose()
+    {
+        Sesion.OnCambio -= ActualizarEstado;
+    }
+
+    private void RedirigirSiEsNecesario()
+    {
+        if (TieneSesion || Redireccionando) return;
+
+        Redireccionando = true;
+        Navigation.NavigateTo("/", replace: true);
+    }
+
+    private void ActualizarEstado() => _ = InvokeAsync(StateHasChanged);
+}

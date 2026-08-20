@@ -7,8 +7,9 @@
 <div class="zeus-shell">
     <ZeusNavbar Active="Agenda" />
 
+    <RolRequerido Rol="Veterinario">
     <main class="agenda-page">
-        <div class="pets-page-heading"><div><p class="eyebrow">Clinic calendar</p><h1>Agenda</h1><p class="welcome-copy">Todas las citas pendientes de tus pacientes.</p></div><a class="zeus-btn-primary" href="/">Volver al dashboard</a></div>
+        <div class="pets-page-heading"><div><p class="eyebrow">Clinic calendar</p><h1>Agenda</h1><p class="welcome-copy">Todas las citas pendientes de tus pacientes.</p></div><a class="zeus-btn-primary" href="/dashboard">Volver al dashboard</a></div>
         <section class="soft-card agenda-panel"><div class="section-heading"><div><p class="eyebrow">Upcoming schedule</p><h2>Próximas citas</h2></div><span class="panel-contador">@Citas.Count pendientes</span></div>
             @if (Citas.Count == 0)
             {
@@ -20,6 +21,7 @@
             }
         </section>
     </main>
+    </RolRequerido>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))

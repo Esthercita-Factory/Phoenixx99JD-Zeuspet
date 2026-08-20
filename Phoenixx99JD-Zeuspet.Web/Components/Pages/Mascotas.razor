@@ -2,7 +2,10 @@
 @rendermode InteractiveServer
 @using Phoenixx99JD_Zeuspet.Web.Models
 @using Phoenixx99JD_Zeuspet.Web.Services
+@using Microsoft.JSInterop
 @inject VeterinariaService Service
+@inject SesionService Sesion
+@inject IJSRuntime JS
 
 @if (CargandoPagina)
 {
@@ -12,6 +15,7 @@
 <div class="zeus-shell">
     <ZeusNavbar Active="Pets" />
 
+    <RolRequerido Rol="Veterinario">
     <main class="pets-page">
         <div class="pets-page-heading">
             <div><p class="eyebrow">Your companions</p><h1>All pets</h1><p class="welcome-copy">Keep every patient close and their care on track.</p></div>
@@ -20,7 +24,10 @@
                     <i class="icon icon-search"></i>
                     <input class="search-input" placeholder="Buscar mascota..." @bind="BusquedaMascotas" @bind:after="FiltrarMascotas" />
                 </div>
-                <button class="zeus-btn-primary" @onclick="AbrirModalNuevaMascota"><i class="icon icon-plus"></i> Nueva mascota</button>
+                @if (Sesion.Rol == "Veterinario")
+                {
+                    <button class="zeus-btn-primary" @onclick="AbrirModalNuevaMascota"><i class="icon icon-plus"></i> Nueva mascota</button>
+                }
             </div>
         </div>
 
@@ -37,7 +44,7 @@
             }
             else if (MascotasFiltradas.Count == 0 && string.IsNullOrWhiteSpace(BusquedaMascotas))
             {
-                <section class="soft-card pets-empty"><i class="icon icon-paw-print"></i><h2>No hay mascotas registradas</h2><p>Agrega la primera mascota para comenzar.</p><button class="zeus-btn-primary" @onclick="AbrirModalNuevaMascota">+ Nueva mascota</button></section>
+                <section class="soft-card pets-empty"><i class="icon icon-paw-print"></i><h2>No hay mascotas registradas</h2><p>Agrega la primera mascota para comenzar.</p>@if (Sesion.Rol == "Veterinario"){<button class="zeus-btn-primary" @onclick="AbrirModalNuevaMascota">+ Nueva mascota</button>}</section>
             }
             else if (MascotasFiltradas.Count == 0 && !string.IsNullOrWhiteSpace(BusquedaMascotas))
             {
@@ -49,7 +56,14 @@
                     @foreach (var mascota in MascotasFiltradas)
                     {
                         <button class="activity-card pet-card @TemaEspecie(mascota.Especie)" @onclick="() => SeleccionarMascota(mascota.Id)" @key="mascota.Id">
-                            <span class="pet-card-icon">@IconoEspecie(mascota.Especie)</span><i class="icon icon-arrow-up-right activity-arrow"></i>
+                            <img class="pet-card-photo" src="@FotoPorRaza(mascota)" alt="Foto de @mascota.Nombre" loading="lazy" onerror="this.onerror=null;this.src='@FotoFallback(mascota)'" />
+                            <span class="pet-card-score">@(Service.ObtenerUltimaEvaluacion(mascota.Id)?.Promedio.ToString("0.0") ?? "—")</span>
+                            <i class="icon icon-arrow-up-right activity-arrow"></i>
+                            <canvas id="mini-chart-@mascota.Id" class="pet-card-chart"></canvas>
+                            @if (Service.ObtenerUltimaEvaluacion(mascota.Id) is null)
+                            {
+                                <small class="pet-card-no-evaluation">Sin evaluación</small>
+                            }
                             <div class="pet-card-info"><strong>@mascota.Nombre</strong><span>@mascota.Especie · @mascota.Raza</span><small>@mascota.Edad años · @NombreDueno(mascota)</small></div>
                         </button>
                     }
@@ -70,23 +84,26 @@
             {
                 <a class="back-link" href="/mascotas" @onclick="CerrarDetalle">← Volver al catálogo</a>
                 <section class="pet-file soft-card">
-                    <div class="pet-file-banner"><img src="@FotoMascota(MascotaSeleccionada)" alt="Foto de @MascotaSeleccionada.Nombre" /></div>
+                    <div class="pet-file-banner"><img src="@FotoPorRaza(MascotaSeleccionada)" alt="Foto de @MascotaSeleccionada.Nombre" onerror="this.onerror=null;this.src='@FotoFallback(MascotaSeleccionada)'" /></div>
                     <div class="pet-file-header"><div><p class="eyebrow">Patient profile</p><h1>@MascotaSeleccionada.Nombre</h1><p>@MascotaSeleccionada.Especie · @MascotaSeleccionada.Raza · @MascotaSeleccionada.Sexo</p></div><span class="status-badge">@MascotaSeleccionada.Estado</span></div>
-                    <div class="pet-file-actions">
-                        <button class="zeus-btn-primary" disabled="@Guardando" @onclick="AbrirModalNuevaConsulta"><i class="icon icon-file-plus"></i> Nueva consulta</button>
-                        <button class="zeus-btn-ghost" disabled="@Guardando" @onclick="AbrirModalEditar"><i class="icon icon-pencil"></i> Editar</button>
-                        <button class="zeus-btn-danger" disabled="@Guardando" @onclick="SolicitarEliminar"><i class="icon icon-trash-2"></i> Eliminar</button>
-                    </div>
+                    @if (Sesion.Rol == "Veterinario")
+                    {
+                        <div class="pet-file-actions">
+                            <button class="zeus-btn-primary" disabled="@Guardando" @onclick="AbrirModalNuevaConsulta"><i class="icon icon-file-plus"></i> Nueva consulta</button>
+                            <button class="zeus-btn-ghost" disabled="@Guardando" @onclick="AbrirModalEditar"><i class="icon icon-pencil"></i> Editar</button>
+                            <button class="zeus-btn-danger" disabled="@Guardando" @onclick="SolicitarEliminar"><i class="icon icon-trash-2"></i> Eliminar</button>
+                        </div>
+                    }
                     @if (Guardando)
                     {
                         <div class="delete-confirm"><span class="zeus-spinner zeus-spinner-dark"></span> Guardando...</div>
                     }
-                    @if (ConfirmarEliminacion)
+                    @if (Sesion.Rol == "Veterinario" && ConfirmarEliminacion)
                     {
                         <div class="delete-confirm"><span>¿Eliminar esta mascota y su historial?</span><button class="zeus-btn-danger" disabled="@Guardando" @onclick="EliminarMascotaConfirmada">Sí, eliminar</button><button class="zeus-btn-ghost" @onclick="CancelarEliminar">Cancelar</button></div>
                     }
                     <div class="info-grid pet-file-info-grid"><div class="info-card"><i class="icon icon-activity"></i><label>Estado</label><span class="status-badge">@MascotaSeleccionada.Estado</span></div><div class="info-card"><i class="icon icon-cake"></i><label>Edad</label><strong>@MascotaSeleccionada.Edad años</strong></div><div class="info-card"><i class="icon icon-weight"></i><label>Peso</label><strong>@(MascotaSeleccionada.Peso.HasValue ? $"{MascotaSeleccionada.Peso:0.0} kg" : "Sin registrar")</strong></div><div class="info-card"><i class="icon icon-user-round"></i><label>Dueño</label><strong>@DuenoSeleccionado?.Nombre</strong></div><div class="info-card"><i class="icon icon-phone"></i><label>Teléfono</label><strong>@(DuenoSeleccionado?.Telefono ?? "Sin registrar")</strong></div><div class="info-card"><i class="icon icon-notebook-pen"></i><label>Notas</label><p>@(string.IsNullOrWhiteSpace(MascotaSeleccionada.Notas) ? "Sin notas registradas." : MascotaSeleccionada.Notas)</p></div></div>
-                    <div class="pet-file-section"><div class="card-heading"><div><p class="eyebrow">Medical history</p><h2>Historial de consultas (@ConsultasSeleccionadas.Count)</h2></div></div>@if (ConsultasSeleccionadas.Count == 0){<div class="consultas-empty"><i class="icon icon-stethoscope"></i><p>Aún no hay consultas registradas.</p><button class="zeus-btn-primary" @onclick="AbrirModalNuevaConsulta">Registrar la primera</button></div>}else{<div class="consultas-list">@foreach (var consulta in ConsultasSeleccionadas){<article class="soft-card consulta-card"><div><p class="eyebrow">@consulta.Fecha.ToString("dd/MM/yyyy HH:mm")</p><strong>@consulta.Motivo</strong><p>@consulta.Notas</p></div><i class="icon icon-clipboard-list"></i></article>}</div>}</div>
+                    <div class="pet-file-section"><div class="card-heading"><div><p class="eyebrow">Medical history</p><h2>Historial de consultas (@ConsultasSeleccionadas.Count)</h2></div></div>@if (ConsultasSeleccionadas.Count == 0){<div class="consultas-empty"><i class="icon icon-stethoscope"></i><p>Aún no hay consultas registradas.</p>@if (Sesion.Rol == "Veterinario"){<button class="zeus-btn-primary" @onclick="AbrirModalNuevaConsulta">Registrar la primera</button>}</div>}else{<div class="consultas-list">@foreach (var consulta in ConsultasSeleccionadas){<article class="soft-card consulta-card"><div><p class="eyebrow">@consulta.Fecha.ToString("dd/MM/yyyy HH:mm")</p><strong>@consulta.Motivo</strong><p>@consulta.Notas</p></div><i class="icon icon-clipboard-list"></i></article>}</div>}</div>
                 </section>
             }
             else
@@ -95,8 +112,11 @@
             }
         }
     </main>
+    </RolRequerido>
 </div>
 
+@if (Sesion.Rol == "Veterinario")
+{
 <ZeusModal IsOpen="@ModalVisible" OnClose="CerrarModal" AriaLabelledBy="new-pet-page-title">
     <HeaderContent>
         <div><p class="eyebrow">Patient profile</p><h2 id="new-pet-page-title">Nueva mascota</h2></div>
@@ -118,7 +138,10 @@
             </form>
     </ChildContent>
 </ZeusModal>
+}
 
+@if (Sesion.Rol == "Veterinario")
+{
 <ZeusModal IsOpen="@ConsultaModalVisible" OnClose="CerrarModalConsulta" AriaLabelledBy="new-consulta-title">
     <HeaderContent>
         <div><p class="eyebrow">Medical history</p><h2 id="new-consulta-title">Nueva consulta</h2></div>
@@ -127,7 +150,10 @@
         <form class="pet-form" @onsubmit="GuardarConsulta" @onsubmit:preventDefault><label>Motivo<input class="zeus-input" @bind="NuevaConsulta.Motivo" placeholder="Ej. Revisión general" required /></label><label>Notas<textarea class="zeus-input" @bind="NuevaConsulta.Notas" rows="4" placeholder="Observaciones de la consulta"></textarea></label><div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalConsulta">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Guardar consulta</button></div></form>
     </ChildContent>
 </ZeusModal>
+}
 
+@if (Sesion.Rol == "Veterinario")
+{
 <ZeusModal IsOpen="@EditarModalVisible" OnClose="CerrarModalEditar" AriaLabelledBy="edit-pet-title">
     <HeaderContent>
         <div><p class="eyebrow">Patient profile</p><h2 id="edit-pet-title">Editar datos</h2></div>
@@ -136,6 +162,7 @@
         <form class="pet-form" @onsubmit="GuardarEdicion" @onsubmit:preventDefault><label>Peso (kg)<input class="zeus-input" type="number" step="0.1" min="0" @bind="EdicionMascota.Peso" /></label><label>Sexo<select class="zeus-input" @bind="EdicionMascota.Sexo"><option>Macho</option><option>Hembra</option></select></label><label>Estado<select class="zeus-input" @bind="EdicionMascota.Estado"><option>Activo</option><option>En tratamiento</option><option>Inactivo</option></select></label><label>Foto URL<input class="zeus-input" @bind="EdicionMascota.FotoUrl" /></label><label>Notas<textarea class="zeus-input" @bind="EdicionMascota.Notas" rows="4"></textarea></label><div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalEditar">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Guardar cambios</button></div></form>
     </ChildContent>
 </ZeusModal>
+}
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))
 {
@@ -176,6 +203,28 @@
         CargandoPagina = false;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (MascotaSeleccionadaId is not null) return;
+
+        var labels = new[] { "Behavior", "Hygiene", "Movement", "Mood" };
+        foreach (var mascota in MascotasRegistradas)
+        {
+            var evaluacion = Service.ObtenerUltimaEvaluacion(mascota.Id);
+            if (evaluacion is null) continue;
+
+            var valores = new[]
+            {
+                evaluacion.Comportamiento,
+                evaluacion.Higiene,
+                evaluacion.Movimiento,
+                evaluacion.Animo
+            };
+
+            await JS.InvokeVoidAsync("renderRadarChart", $"mini-chart-{mascota.Id}", labels, valores, true);
+        }
+    }
+
     private void CargarDatos()
     {
         MascotasRegistradas = Service.ListarMascotas();
@@ -198,6 +247,8 @@
 
     private void AbrirModalNuevaConsulta()
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         NuevaConsulta = new NuevaConsultaForm();
         ConsultaModalVisible = true;
     }
@@ -206,7 +257,7 @@
 
     private async Task GuardarConsulta()
     {
-        if (MascotaSeleccionada is null || string.IsNullOrWhiteSpace(NuevaConsulta.Motivo)) return;
+        if (Sesion.Rol != "Veterinario" || MascotaSeleccionada is null || string.IsNullOrWhiteSpace(NuevaConsulta.Motivo)) return;
 
         Guardando = true;
         await InvokeAsync(StateHasChanged);
@@ -220,7 +271,7 @@
 
     private void AbrirModalEditar()
     {
-        if (MascotaSeleccionada is null) return;
+        if (Sesion.Rol != "Veterinario" || MascotaSeleccionada is null) return;
 
         EdicionMascota = new EdicionMascotaForm
         {
@@ -237,7 +288,7 @@
 
     private async Task GuardarEdicion()
     {
-        if (MascotaSeleccionada is null) return;
+        if (Sesion.Rol != "Veterinario" || MascotaSeleccionada is null) return;
 
         Guardando = true;
         await InvokeAsync(StateHasChanged);
@@ -250,12 +301,16 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void SolicitarEliminar() => ConfirmarEliminacion = true;
+    private void SolicitarEliminar()
+    {
+        if (Sesion.Rol == "Veterinario") ConfirmarEliminacion = true;
+    }
+
     private void CancelarEliminar() => ConfirmarEliminacion = false;
 
     private async Task EliminarMascotaConfirmada()
     {
-        if (MascotaSeleccionadaId is null) return;
+        if (Sesion.Rol != "Veterinario" || MascotaSeleccionadaId is null) return;
 
         Guardando = true;
         await InvokeAsync(StateHasChanged);
@@ -271,6 +326,8 @@
 
     private void AbrirModalNuevaMascota()
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         NuevaMascota = new NuevaMascotaForm { ClienteId = Clientes.FirstOrDefault()?.Id ?? "" };
         ModalVisible = true;
     }
@@ -279,6 +336,8 @@
 
     private async Task GuardarMascota()
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         if (string.IsNullOrWhiteSpace(NuevaMascota.Nombre) || (!NuevaMascota.UsarNuevoCliente && string.IsNullOrWhiteSpace(NuevaMascota.ClienteId)) || (NuevaMascota.UsarNuevoCliente && string.IsNullOrWhiteSpace(NuevaMascota.NombreCliente)))
         {
             MostrarToast("Completa los datos de la mascota.");
@@ -295,7 +354,7 @@
             clienteId = nuevoCliente.Id;
         }
 
-        Service.AgregarMascota(NuevaMascota.Nombre.Trim(), NuevaMascota.Especie, NuevaMascota.Raza.Trim(), NuevaMascota.Edad, clienteId);
+        Service.AgregarMascota(NuevaMascota.Nombre.Trim(), NuevaMascota.Especie, NuevaMascota.Raza.Trim(), NuevaMascota.Edad, clienteId, "", "");
         CargarDatos();
         ModalVisible = false;
         Guardando = false;
@@ -304,13 +363,29 @@
     }
 
     private string NombreDueno(Mascota mascota) => Service.BuscarClientePorId(mascota.ClienteId)?.Nombre ?? "Sin dueño";
-    private string FotoMascota(Mascota mascota) => !string.IsNullOrWhiteSpace(mascota.FotoUrl) ? mascota.FotoUrl : mascota.Especie.ToLowerInvariant() switch
+    private string FotoPorRaza(Mascota mascota) => !string.IsNullOrWhiteSpace(mascota.FotoUrl)
+        ? mascota.FotoUrl
+        : $"https://loremflickr.com/400/300/{Uri.EscapeDataString(mascota.Raza)},{mascota.Especie.ToLowerInvariant()}/all?lock={mascota.Id.GetHashCode()}";
+    private static string FotoFallback(Mascota mascota)
     {
-        "gato" => "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=1200&q=85",
-        "conejo" => "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=1200&q=85",
-        _ => "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=1200&q=85"
-    };
-    private string IconoEspecie(string especie) => especie.ToLowerInvariant() switch { "perro" => "\ud83d\udc36", "gato" => "\ud83d\udc31", "conejo" => "\ud83d\udc30", _ => "\ud83d\udc3e" };
+        var archivo = mascota.Raza.Trim().ToLowerInvariant() switch
+        {
+            "pastor aleman" or "pastor alemán" => "German Shepherd Dog.jpg",
+            "siames" or "siamés" => "Siamese cat.jpg",
+            "bulldog frances" or "bulldog francés" => "French bulldog head, Josselin 02.jpg",
+            "persa" => "Persian cat.jpg",
+            "golden retriever" => "Golden Retriever.jpg",
+            "chihuahua" => "Chihuahua.jpg",
+            "angora" => "Turkish Angora.jpg",
+            "labrador" => "Labrador Retriever.jpg",
+            "mini lop" => "Mini lop.jpg",
+            _ => null
+        };
+
+        return archivo is not null
+            ? $"https://commons.wikimedia.org/wiki/Special:FilePath/{Uri.EscapeDataString(archivo)}?width=400"
+            : $"https://picsum.photos/seed/{Uri.EscapeDataString($"{mascota.Raza}-{mascota.Especie}")}/400/300";
+    }
     private string TemaEspecie(string especie) => especie.ToLowerInvariant() switch { "gato" => "activity-lilac", "conejo" => "activity-orange", _ => "activity-green" };
 
     private void MostrarToast(string mensaje)

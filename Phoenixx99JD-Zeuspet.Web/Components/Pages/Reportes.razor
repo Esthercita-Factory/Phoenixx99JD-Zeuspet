@@ -7,6 +7,7 @@
 <div class="zeus-shell">
     <ZeusNavbar Active="Reports" />
 
+    <RolRequerido Rol="Veterinario">
     <main class="reports-page">
         <div class="pets-page-heading"><div><p class="eyebrow">Clinic overview</p><h1>Reports</h1><p class="welcome-copy">Una vista clara del trabajo y bienestar en ZeusPet.</p></div></div>
 
@@ -21,6 +22,7 @@
             <article class="soft-card report-panel report-average"><div class="section-heading"><div><p class="eyebrow">Wellness snapshot</p><h2>Promedio de calidad de vida</h2></div></div>@if (PromedioGeneral is null){<div class="report-empty"><i class="icon icon-clipboard-heart"></i><p>Aún no hay evaluaciones cargadas.</p></div>}else{<div class="report-average-body"><div class="quality-score evaluation-score">@PromedioGeneral.Value.ToString("0.0")<small>/10</small></div><div><strong>Bienestar general</strong><p>Promedio de todas las evaluaciones registradas.</p></div></div>}</article>
         </section>
     </main>
+    </RolRequerido>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))

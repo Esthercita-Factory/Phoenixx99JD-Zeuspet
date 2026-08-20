@@ -1,0 +1,343 @@
+@page "/comunidad"
+@rendermode InteractiveServer
+@using Phoenixx99JD_Zeuspet.Web.Models
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject VeterinariaService Service
+@inject SesionService Sesion
+
+<div class="zeus-shell">
+    <ZeusNavbar Active="Community" />
+
+    <RolRequerido Rol="Cualquiera">
+    <main class="community-page">
+        <div class="pets-page-heading">
+            <div>
+                <p class="eyebrow">ZeusPet community</p>
+                <h1>Compartimos el cuidado</h1>
+                <p class="welcome-copy">Tips, preguntas y pequeños logros de nuestra comunidad.</p>
+            </div>
+            <span class="community-count">@Publicaciones.Count publicaciones</span>
+        </div>
+
+        <section class="soft-card community-composer">
+            <div class="card-heading">
+                <div>
+                    <p class="eyebrow">Tu voz en ZeusPet</p>
+                    <h2>Crear publicación</h2>
+                </div>
+                <span class="community-composer-role">Publicando como @RolPublicacion</span>
+            </div>
+            <form class="community-form" @onsubmit="Publicar" @onsubmit:preventDefault>
+                <label>
+                    ¿Qué querés compartir?
+                    <textarea class="zeus-input community-textarea" @bind="NuevaPublicacion.Contenido" placeholder="Contale algo útil a la comunidad..." maxlength="500" required></textarea>
+                </label>
+                <div class="community-form-grid">
+                    <label>
+                        Categoría
+                        <select class="zeus-input" @bind="NuevaPublicacion.Categoria">
+                            <option value="Tip">Tip</option>
+                            <option value="Pregunta">Pregunta</option>
+                            <option value="Logro">Logro</option>
+                            <option value="Anuncio">Anuncio</option>
+                        </select>
+                    </label>
+                    <label>
+                        ¿Sobre qué mascota?
+                        <select class="zeus-input" @bind="NuevaPublicacion.MascotaId">
+                            <option value="">Ninguna mascota</option>
+                            @foreach (var mascota in MascotasClienteActual)
+                            {
+                                <option value="@mascota.Id">@mascota.Nombre · @mascota.Especie</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <div class="community-form-footer">
+                    <span>Podés compartir una experiencia, una duda o un logro.</span>
+                    <button class="zeus-btn-primary" type="submit"><i class="icon icon-send"></i> Publicar</button>
+                </div>
+            </form>
+        </section>
+
+        <div class="community-toolbar">
+            <div class="filter-tabs" aria-label="Filtrar publicaciones">
+                @foreach (var filtro in Filtros)
+                {
+                    <button class="@(CategoriaSeleccionada == filtro.Categoria ? "selected" : "")" type="button" @onclick="() => SeleccionarCategoria(filtro.Categoria)">@filtro.Etiqueta</button>
+                }
+            </div>
+            <span class="community-filter-label">@(string.IsNullOrWhiteSpace(CategoriaSeleccionada) ? "Todas las publicaciones" : $"Publicaciones de {CategoriaSeleccionada}")</span>
+        </div>
+
+        @if (Publicaciones.Count == 0)
+        {
+            <section class="soft-card community-empty">
+                <i class="icon icon-messages-square"></i>
+                <h2>No hay publicaciones en esta categoría</h2>
+                <p>Probá otro filtro o compartí la primera publicación.</p>
+            </section>
+        }
+        else
+        {
+            <div class="community-feed">
+                @foreach (var publicacion in Publicaciones)
+                {
+                    <article class="soft-card community-post" @key="publicacion.Id">
+                        <div class="community-post-header">
+                            <div class="community-author">
+                                <span class="community-avatar">@Iniciales(NombreAutor(publicacion.ClienteId))</span>
+                                <div>
+                                    <strong>@NombreAutor(publicacion.ClienteId)</strong>
+                                    <div class="community-author-meta">
+                                        @if (publicacion.EsVeterinario)
+                                        {
+                                            <span class="status-badge">Veterinario</span>
+                                        }
+                                        <span class="community-date">@FechaRelativa(publicacion.Fecha)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @if (EsVeterinario)
+                            {
+                                <button class="community-delete-button" type="button" aria-label="Eliminar publicación" @onclick="() => SolicitarEliminar(publicacion.Id)"><i class="icon icon-trash-2"></i> Eliminar</button>
+                            }
+                        </div>
+
+                        <div class="community-post-meta">
+                            <span class="community-category @ClaseCategoria(publicacion.Categoria)">@publicacion.Categoria</span>
+                            @if (MascotaDe(publicacion) is { } mascota)
+                            {
+                                <span class="community-pet-tag"><i class="icon icon-paw-print"></i> @mascota.Nombre</span>
+                            }
+                        </div>
+                        <p class="community-post-content">@publicacion.Contenido</p>
+
+                        <div class="community-post-actions">
+                            <button class="community-action community-like @(DioLike(publicacion) ? "liked" : "")" type="button" aria-pressed="@DioLike(publicacion)" @onclick="() => AlternarLike(publicacion.Id)">
+                                <i class="icon icon-heart"></i> @publicacion.LikesDe.Count
+                            </button>
+                            <button class="community-action" type="button" @onclick="() => AlternarComentarios(publicacion.Id)">
+                                <i class="icon icon-message-circle"></i> Ver comentarios (@CantidadComentarios(publicacion.Id))
+                            </button>
+                        </div>
+
+                        @if (PublicacionExpandidaId == publicacion.Id)
+                        {
+                            <div class="community-comments">
+                                @if (CantidadComentarios(publicacion.Id) == 0)
+                                {
+                                    <p class="community-comments-empty">Todavía no hay comentarios.</p>
+                                }
+                                else
+                                {
+                                    @foreach (var comentario in Service.ListarComentarios(publicacion.Id))
+                                    {
+                                        <div class="community-comment">
+                                            <span class="community-comment-avatar">@Iniciales(NombreAutor(comentario.ClienteId))</span>
+                                            <div>
+                                                <div class="community-comment-heading"><strong>@NombreAutor(comentario.ClienteId)</strong><span>@FechaRelativa(comentario.Fecha)</span></div>
+                                                <p>@comentario.Contenido</p>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                <form class="community-comment-form" @onsubmit="() => AgregarComentario(publicacion.Id)" @onsubmit:preventDefault>
+                                    <input class="zeus-input" @bind="NuevoComentario" placeholder="Escribí un comentario..." maxlength="250" required />
+                                    <button class="zeus-btn-primary" type="submit" aria-label="Enviar comentario"><i class="icon icon-send"></i></button>
+                                </form>
+                            </div>
+                        }
+
+                        @if (EsVeterinario && PublicacionAEliminarId == publicacion.Id)
+                        {
+                            <div class="community-delete-confirm">
+                                <span>¿Eliminar esta publicación?</span>
+                                <button class="zeus-btn-danger" type="button" @onclick="EliminarPublicacion">Sí, eliminar</button>
+                                <button class="zeus-btn-ghost" type="button" @onclick="CancelarEliminar">Cancelar</button>
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    </main>
+    </RolRequerido>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(ToastMessage))
+{
+    <div class="zeus-toast" role="status">@ToastMessage</div>
+}
+
+@code {
+    private readonly (string Etiqueta, string Categoria)[] Filtros =
+    [
+        ("Todas", ""),
+        ("Tips", "Tip"),
+        ("Preguntas", "Pregunta"),
+        ("Logros", "Logro"),
+        ("Anuncios", "Anuncio")
+    ];
+
+    private readonly List<PublicacionComunidad> Publicaciones = [];
+    private List<Mascota> MascotasClienteActual { get; set; } = [];
+    private NuevaPublicacionForm NuevaPublicacion { get; set; } = new();
+    private string? clienteActualId;
+    private string CategoriaSeleccionada { get; set; } = "";
+    private string? PublicacionExpandidaId { get; set; }
+    private string NuevoComentario { get; set; } = "";
+    private string? PublicacionAEliminarId { get; set; }
+    private string? ToastMessage { get; set; }
+    private CancellationTokenSource? ToastCts;
+
+    private bool EsVeterinario => Sesion.Rol == "Veterinario";
+    private string RolPublicacion => EsVeterinario ? "Veterinario" : "Usuario";
+
+    protected override void OnInitialized()
+    {
+        clienteActualId = Service.ListarClientes().FirstOrDefault()?.Id;
+        MascotasClienteActual = clienteActualId is null ? [] : Service.ListarMascotasDeCliente(clienteActualId);
+        CargarPublicaciones();
+    }
+
+    private void CargarPublicaciones()
+    {
+        var publicaciones = string.IsNullOrWhiteSpace(CategoriaSeleccionada)
+            ? Service.ListarPublicaciones()
+            : Service.ListarPublicacionesPorCategoria(CategoriaSeleccionada);
+
+        Publicaciones.Clear();
+        Publicaciones.AddRange(publicaciones);
+    }
+
+    private void Publicar()
+    {
+        if (clienteActualId is null || string.IsNullOrWhiteSpace(NuevaPublicacion.Contenido)) return;
+
+        var mascotaId = string.IsNullOrWhiteSpace(NuevaPublicacion.MascotaId) ? null : NuevaPublicacion.MascotaId;
+        Service.CrearPublicacion(
+            clienteActualId,
+            mascotaId,
+            NuevaPublicacion.Contenido.Trim(),
+            NuevaPublicacion.Categoria,
+            EsVeterinario);
+
+        NuevaPublicacion = new NuevaPublicacionForm();
+        CargarPublicaciones();
+        MostrarToast("Publicación creada correctamente.");
+    }
+
+    private void SeleccionarCategoria(string categoria)
+    {
+        CategoriaSeleccionada = categoria;
+        CargarPublicaciones();
+    }
+
+    private void AlternarLike(string publicacionId)
+    {
+        if (clienteActualId is null) return;
+
+        Service.ToggleLike(publicacionId, clienteActualId);
+    }
+
+    private void AlternarComentarios(string publicacionId)
+    {
+        PublicacionExpandidaId = PublicacionExpandidaId == publicacionId ? null : publicacionId;
+        NuevoComentario = "";
+    }
+
+    private void AgregarComentario(string publicacionId)
+    {
+        if (clienteActualId is null || string.IsNullOrWhiteSpace(NuevoComentario)) return;
+
+        Service.AgregarComentario(publicacionId, clienteActualId, NuevoComentario.Trim());
+        NuevoComentario = "";
+    }
+
+    private void SolicitarEliminar(string publicacionId)
+    {
+        if (!EsVeterinario) return;
+
+        PublicacionAEliminarId = publicacionId;
+    }
+
+    private void CancelarEliminar() => PublicacionAEliminarId = null;
+
+    private void EliminarPublicacion()
+    {
+        if (!EsVeterinario || PublicacionAEliminarId is null) return;
+
+        Service.EliminarPublicacion(PublicacionAEliminarId);
+        if (PublicacionExpandidaId == PublicacionAEliminarId)
+            PublicacionExpandidaId = null;
+
+        PublicacionAEliminarId = null;
+        CargarPublicaciones();
+        MostrarToast("Publicación eliminada correctamente.");
+    }
+
+    private int CantidadComentarios(string publicacionId) => Service.ListarComentarios(publicacionId).Count;
+
+    private bool DioLike(PublicacionComunidad publicacion) =>
+        clienteActualId is not null && publicacion.LikesDe.Contains(clienteActualId);
+
+    private string NombreAutor(string clienteId) =>
+        Service.BuscarClientePorId(clienteId)?.Nombre ?? "Usuario ZeusPet";
+
+    private Mascota? MascotaDe(PublicacionComunidad publicacion) =>
+        publicacion.MascotaId is null ? null : Service.BuscarMascotaPorId(publicacion.MascotaId);
+
+    private static string Iniciales(string nombre) =>
+        string.Join("", nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(parte => char.ToUpperInvariant(parte[0])));
+
+    private static string ClaseCategoria(string categoria) => categoria.ToLowerInvariant() switch
+    {
+        "tip" => "community-category-tip",
+        "pregunta" => "community-category-question",
+        "logro" => "community-category-achievement",
+        "anuncio" => "community-category-announcement",
+        _ => "community-category-tip"
+    };
+
+    private static string FechaRelativa(DateTime fecha)
+    {
+        var diferencia = DateTime.Now - fecha;
+        if (diferencia.TotalMinutes < 1) return "ahora";
+        if (diferencia.TotalHours < 1)
+        {
+            var minutos = (int)diferencia.TotalMinutes;
+            return $"hace {minutos} minuto{(minutos == 1 ? "" : "s")}";
+        }
+
+        if (diferencia.TotalDays < 1)
+        {
+            var horas = (int)diferencia.TotalHours;
+            return $"hace {horas} hora{(horas == 1 ? "" : "s")}";
+        }
+
+        if (diferencia.TotalDays < 7) return $"hace {(int)diferencia.TotalDays} día{(diferencia.TotalDays >= 2 ? "s" : "")}";
+        return fecha.ToString("dd/MM/yyyy");
+    }
+
+    private void MostrarToast(string mensaje)
+    {
+        ToastCts?.Cancel();
+        ToastMessage = mensaje;
+        ToastCts = new CancellationTokenSource();
+        _ = Task.Delay(3000, ToastCts.Token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+
+            ToastMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private sealed class NuevaPublicacionForm
+    {
+        public string Contenido { get; set; } = "";
+        public string Categoria { get; set; } = "Tip";
+        public string MascotaId { get; set; } = "";
+    }
+}

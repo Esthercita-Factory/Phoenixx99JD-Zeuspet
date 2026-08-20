@@ -10,6 +10,7 @@ public class Mascota : Animal
     public string Estado { get; set; } = "Activo";
     public string Notas { get; set; } = "";
     public string FotoUrl { get; set; } = "";
+    public string NumeroIdentificacion { get; set; } = "";
 
     public Mascota(string id, string nombre, string especie, string raza, int edad, string clienteId)
         : base(nombre, edad, especie)

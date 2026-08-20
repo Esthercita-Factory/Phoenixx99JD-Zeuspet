@@ -1,0 +1,51 @@
+@page "/"
+@rendermode InteractiveServer
+@using Phoenixx99JD_Zeuspet.Web.Services
+@inject SesionService Sesion
+@inject NavigationManager Navigation
+
+<main class="welcome-page">
+    <header class="welcome-header">
+        <a class="zeus-logo" href="/" aria-label="ZeusPet inicio">
+            <span class="logo-mark"><i class="icon icon-paw-print"></i></span>
+            <span>zeus<span>pet</span></span>
+        </a>
+        <span class="welcome-header-label">Cuidado que conecta</span>
+    </header>
+
+    <section class="welcome-content" aria-labelledby="welcome-title">
+        <p class="eyebrow">Bienvenido a ZeusPet</p>
+        <h1 id="welcome-title">¿Cómo querés <em>ingresar hoy?</em></h1>
+        <p class="welcome-intro">Elegí tu modo de trabajo para continuar.</p>
+
+        <div class="role-options">
+            <button class="role-card role-card-owner" type="button" @onclick='() => SeleccionarRol("Usuario")'>
+                <span class="role-card-icon"><i class="icon icon-heart"></i></span>
+                <span class="role-card-copy">
+                    <strong>Soy dueño de mascota</strong>
+                    <small>Seguí el bienestar y la rutina de tu compañero.</small>
+                </span>
+                <i class="icon icon-arrow-up-right role-card-arrow"></i>
+            </button>
+
+            <button class="role-card role-card-vet" type="button" @onclick='() => SeleccionarRol("Veterinario")'>
+                <span class="role-card-icon"><i class="icon icon-stethoscope"></i></span>
+                <span class="role-card-copy">
+                    <strong>Soy veterinario/a</strong>
+                    <small>Gestioná pacientes, consultas y seguimiento clínico.</small>
+                </span>
+                <i class="icon icon-arrow-up-right role-card-arrow"></i>
+            </button>
+        </div>
+    </section>
+
+    <footer class="welcome-footer">Tu mascota, siempre en buenas manos.</footer>
+</main>
+
+@code {
+    private void SeleccionarRol(string rol)
+    {
+        Sesion.Rol = rol;
+        Navigation.NavigateTo("/dashboard");
+    }
+}

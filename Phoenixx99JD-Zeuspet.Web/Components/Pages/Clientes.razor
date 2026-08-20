@@ -3,6 +3,7 @@
 @using Phoenixx99JD_Zeuspet.Web.Models
 @using Phoenixx99JD_Zeuspet.Web.Services
 @inject VeterinariaService Service
+@inject SesionService Sesion
 
 <div class="zeus-shell">
     <ZeusNavbar Active="Clients" />
@@ -15,13 +16,16 @@
                     <i class="icon icon-search"></i>
                     <input class="search-input" placeholder="Buscar por nombre o email..." @bind="Busqueda" />
                 </div>
-                <button class="zeus-btn-primary" @onclick="AbrirModal"><i class="icon icon-plus"></i> Nuevo cliente</button>
+                @if (Sesion.Rol == "Veterinario")
+                {
+                    <button class="zeus-btn-primary" @onclick="AbrirModal"><i class="icon icon-plus"></i> Nuevo cliente</button>
+                }
             </div>
         </div>
 
         @if (ClientesFiltrados.Count == 0 && string.IsNullOrWhiteSpace(Busqueda))
         {
-            <section class="soft-card pets-empty"><i class="icon icon-users"></i><h2>No hay clientes registrados</h2><p>Agrega el primer cliente para comenzar.</p><button class="zeus-btn-primary" @onclick="AbrirModal">+ Nuevo cliente</button></section>
+            <section class="soft-card pets-empty"><i class="icon icon-users"></i><h2>No hay clientes registrados</h2><p>Agrega el primer cliente para comenzar.</p>@if (Sesion.Rol == "Veterinario"){<button class="zeus-btn-primary" @onclick="AbrirModal">+ Nuevo cliente</button>}</section>
         }
         else if (ClientesFiltrados.Count == 0)
         {
@@ -46,6 +50,8 @@
     </main>
 </div>
 
+@if (Sesion.Rol == "Veterinario")
+{
 <ZeusModal IsOpen="@ModalVisible" OnClose="CerrarModal" AriaLabelledBy="new-client-title">
     <HeaderContent>
         <div><p class="eyebrow">Client directory</p><h2 id="new-client-title">Nuevo cliente</h2></div>
@@ -67,6 +73,7 @@
         </form>
     </ChildContent>
 </ZeusModal>
+}
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))
 {
@@ -93,6 +100,8 @@
 
     private void AbrirModal()
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         NuevoCliente = new NuevoClienteForm();
         ModalVisible = true;
     }
@@ -101,6 +110,8 @@
 
     private async Task GuardarCliente()
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         if (string.IsNullOrWhiteSpace(NuevoCliente.Nombre))
         {
             MostrarToast("El nombre del cliente es obligatorio.");
@@ -117,7 +128,7 @@
         await InvokeAsync(StateHasChanged);
 
         var cliente = Service.AgregarCliente(NuevoCliente.Nombre.Trim(), NuevoCliente.Edad, NuevoCliente.Telefono.Trim(), NuevoCliente.Email.Trim(), NuevoCliente.Direccion.Trim());
-        Service.AgregarMascota(NuevoCliente.NombreMascota.Trim(), NuevoCliente.EspecieMascota, NuevoCliente.RazaMascota.Trim(), NuevoCliente.EdadMascota, cliente.Id);
+        Service.AgregarMascota(NuevoCliente.NombreMascota.Trim(), NuevoCliente.EspecieMascota, NuevoCliente.RazaMascota.Trim(), NuevoCliente.EdadMascota, cliente.Id, "", "");
 
         ClientesRegistrados = Service.ListarClientes();
         ModalVisible = false;

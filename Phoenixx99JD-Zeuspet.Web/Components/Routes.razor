@@ -1,6 +1,17 @@
+@using Phoenixx99JD_Zeuspet.Web.Components.Pages
+
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        @if (routeData.PageType == typeof(Bienvenida))
+        {
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        }
+        else
+        {
+            <SesionGuard>
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+            </SesionGuard>
+        }
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>

@@ -7,6 +7,7 @@
 <div class="zeus-shell">
     <ZeusNavbar Active="Activity" />
 
+    <RolRequerido Rol="Cualquiera">
     <main class="activities-page">
         <div class="pets-page-heading">
             <div><p class="eyebrow">Daily routine</p><h1>Activities</h1><p class="welcome-copy">Organiza los momentos importantes de cada mascota.</p></div>
@@ -43,6 +44,7 @@
             </div>
         }
     </main>
+    </RolRequerido>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(ToastMessage))

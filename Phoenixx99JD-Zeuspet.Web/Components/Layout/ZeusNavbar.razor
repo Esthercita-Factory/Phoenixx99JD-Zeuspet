@@ -1,20 +1,20 @@
 @namespace Phoenixx99JD_Zeuspet.Web.Components.Layout
+@implements IDisposable
 @using Phoenixx99JD_Zeuspet.Web.Models
 @using Phoenixx99JD_Zeuspet.Web.Services
 @using Microsoft.JSInterop
 @inject VeterinariaService Service
+@inject SesionService Sesion
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <header class="zeus-navbar">
     <a class="zeus-logo" href="/" aria-label="ZeusPet inicio"><span class="logo-mark"><i class="icon icon-paw-print"></i></span><span>zeus<span>pet</span></span></a>
     <nav class="zeus-nav" aria-label="Navegación principal">
-        <a class="@(Active == "Dashboard" ? "active" : "")" href="/">Dashboard</a>
-        <a class="@(Active == "Pets" ? "active" : "")" href="/mascotas">Pets</a>
-        <a class="@(Active == "Assessment" ? "active" : "")" href="/evaluaciones">Assessment</a>
-        <a class="@(Active == "Activity" ? "active" : "")" href="/actividades">Activity</a>
-        <a class="@(Active == "Reports" ? "active" : "")" href="/reportes">Reports</a>
-        <a class="@(Active == "Clients" ? "active" : "")" href="/clientes">Clients</a>
-        <button class="zeus-nav-button" @onclick="MostrarProximamente">Community</button>
+        @foreach (var item in ItemsNavegacion)
+        {
+            <a class="@(Active == item.Active ? "active" : "")" href="@item.Route">@item.Label</a>
+        }
     </nav>
     <div class="zeus-userbar">
         <button class="round-action" aria-label="Cambiar tema" @onclick="ToggleTheme"><i class="icon @(TemaOscuro ? "icon-sun" : "icon-moon")"></i></button>
@@ -41,6 +41,21 @@
                 </div>
             }
         </div>
+        <div class="role-switcher">
+            <button class="role-badge" type="button" aria-expanded="@RolMenuVisible" @onclick="ToggleRolMenu">
+                <span class="role-badge-dot"></span>
+                <span>Modo: @RolActual</span>
+                <i class="icon icon-chevron-down"></i>
+            </button>
+            @if (RolMenuVisible)
+            {
+                <div class="role-dropdown" role="menu">
+                    <span class="role-dropdown-label">Sesión actual</span>
+                    <strong>Modo: @RolActual</strong>
+                    <button type="button" @onclick="CambiarRol">Cambiar rol</button>
+                </div>
+            }
+        </div>
         <div class="user-profile"><span class="user-avatar">AS</span><span><strong>Alex Smith</strong><small>alex@zeuspet.com</small></span></div>
     </div>
 </header>
@@ -62,14 +77,43 @@
     private string? ToastMessage { get; set; }
     private bool NotificacionesVisibles { get; set; }
     private bool TemaOscuro { get; set; }
+    private bool RolMenuVisible { get; set; }
     private int NotificacionesPendientes => Notificaciones.Count;
     private List<NotificacionItem> Notificaciones { get; set; } = [];
+    private string RolActual => string.IsNullOrWhiteSpace(Sesion.Rol) ? "Sin rol" : Sesion.Rol;
+    private IReadOnlyList<NavItem> ItemsNavegacion => Sesion.Rol switch
+    {
+        "Usuario" =>
+        [
+            new("Dashboard", "/dashboard", "Dashboard"),
+            new("Assessment", "/evaluaciones", "Assessment"),
+            new("Activity", "/actividades", "Activity"),
+            new("Community", "/comunidad", "Community")
+        ],
+        "Veterinario" =>
+        [
+            new("Dashboard", "/dashboard", "Dashboard"),
+            new("Pets", "/mascotas", "Pets"),
+            new("Assessment", "/evaluaciones", "Assessment"),
+            new("Activity", "/actividades", "Activity"),
+            new("Reports", "/reportes", "Reports"),
+            new("Agenda", "/agenda", "Agenda"),
+            new("Community", "/comunidad", "Community")
+        ],
+        _ => []
+    };
 
     private bool PrimerRender { get; set; } = true;
 
     protected override void OnInitialized()
     {
+        Sesion.OnCambio += NotificarCambioSesion;
         CargarNotificaciones();
+    }
+
+    public void Dispose()
+    {
+        Sesion.OnCambio -= NotificarCambioSesion;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -131,7 +175,17 @@
     }
 
     private void CerrarNotificaciones() => NotificacionesVisibles = false;
-    private void MostrarProximamente() => ToastMessage = "Próximamente";
+    private void ToggleRolMenu() => RolMenuVisible = !RolMenuVisible;
 
+    private void CambiarRol()
+    {
+        Sesion.Rol = "";
+        RolMenuVisible = false;
+        Navigation.NavigateTo("/", replace: true);
+    }
+
+    private void NotificarCambioSesion() => _ = InvokeAsync(StateHasChanged);
+
+    private sealed record NavItem(string Label, string Route, string Active);
     private sealed record NotificacionItem(string Titulo, string Detalle, string Icono, string BackgroundColor, string IconColor);
 }

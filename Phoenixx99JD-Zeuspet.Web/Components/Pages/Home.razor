@@ -1,19 +1,21 @@
-@page "/"
+@page "/dashboard"
 @rendermode InteractiveServer
 @using Phoenixx99JD_Zeuspet.Web.Models
 @using Phoenixx99JD_Zeuspet.Web.Services
 @using Microsoft.JSInterop
 @inject VeterinariaService Service
+@inject SesionService Sesion
 @inject IJSRuntime JS
 
 <div class="zeus-shell">
     <ZeusNavbar Active="Dashboard" />
 
+    <RolRequerido Rol="Cualquiera">
     <main class="zeus-layout">
         <section class="zeus-main-column">
             <div class="welcome-row">
                 <div><p class="eyebrow">Good morning, Alex</p><h1>Happy Pets,<br /><em>Happier You</em></h1><p class="welcome-copy">Let's get started! Keep every furry friend feeling their best.</p></div>
-                <div class="pets-shortcut"><div><span class="section-label">Your pets</span><div class="pet-avatars">@foreach (var mascota in MascotasActuales){<button type="button" class="pet-avatar pet-real @(MascotaSeleccionadaId == mascota.Id ? "selected" : "")" title="@mascota.Nombre" aria-label="Seleccionar @mascota.Nombre" @onclick="() => SeleccionarMascota(mascota.Id)">@IconoEspecie(mascota.Especie)</button>}<a class="add-pet" href="/mascotas" aria-label="Agregar mascota"><i class="icon icon-plus"></i></a></div></div><span class="add-label">Add new</span></div>
+                <div class="pets-shortcut"><div><span class="section-label">Your pets</span><div class="pet-avatars">@foreach (var mascota in MascotasActuales){<button type="button" class="pet-avatar pet-real @(MascotaSeleccionadaId == mascota.Id ? "selected" : "")" title="@mascota.Nombre" aria-label="Seleccionar @mascota.Nombre" @onclick="() => SeleccionarMascota(mascota.Id)">@IconoEspecie(mascota.Especie)</button>}@if (Sesion.Rol == "Veterinario"){<a class="add-pet" href="/mascotas" aria-label="Agregar mascota"><i class="icon icon-plus"></i></a>}</div></div>@if (Sesion.Rol == "Veterinario"){<span class="add-label">Add new</span>}</div>
             </div>
 
             <section class="content-section activities-section">
@@ -36,9 +38,10 @@
         <aside class="zeus-sidebar">
             <section class="featured-pet">@if (MascotaSeleccionada is not null){<img src="@FotoMascota(MascotaSeleccionada)" alt="@MascotaSeleccionada.Nombre" /><div class="pet-overlay"><div><span>Meet your pet</span><h2>@MascotaSeleccionada.Nombre</h2><p>@MascotaSeleccionada.Especie · @MascotaSeleccionada.Raza</p></div><span class="pet-alert">@ActividadesSeleccionadas.Count()</span></div>}else{<div class="featured-pet-empty">Selecciona una mascota</div>}</section>
             <section class="calendar-card soft-card"><div class="card-heading"><h3>@MonthTitle</h3><div><button aria-label="Mes anterior" @onclick="PreviousMonth"><i class="icon icon-chevron-left"></i></button><button aria-label="Mes siguiente" @onclick="NextMonth"><i class="icon icon-chevron-right"></i></button></div></div><div class="calendar-week">@foreach (var day in CalendarDays){<span>@day</span>}</div><div class="calendar-dates">@foreach (var date in CalendarDates){<span class="@CalendarDateClass(date)" @onclick="() => SeleccionarFecha(date.Date)">@date.Date.Day</span>}</div></section>
-            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><div class="schedule-menu-wrap"><button class="more-button" type="button" aria-label="Más opciones" @onclick="ToggleScheduleMenu"><i class="icon icon-ellipsis"></i></button>@if (ScheduleMenuVisible){<div class="schedule-menu"><button type="button" @onclick="AbrirModalNuevaCita"><i class="icon icon-calendar-plus"></i> Agregar cita</button><a href="/agenda" @onclick="CerrarMenus"><i class="icon icon-list"></i> Ver todas</a></div>}</div></div><div class="schedule-list">@foreach (var cita in ProximasCitas){<article class="schedule-item @CitaTheme(cita.Tipo)"><span class="schedule-icon"><i class="icon @CitaIcon(cita.Tipo)"></i></span><div><strong>@cita.Titulo</strong><span>@cita.Hora</span></div><div class="schedule-action-wrap"><button class="schedule-chevron-button" type="button" aria-label="Opciones de @cita.Titulo" @onclick="() => ToggleCitaMenu(cita.Id)"><i class="icon icon-chevron-right schedule-chevron"></i></button>@if (CitaMenuId == cita.Id){<div class="cita-context-menu"><button type="button" @onclick="() => MarcarCita(cita.Id)">Marcar como completada</button><button type="button" @onclick="() => SolicitarEliminarCita(cita.Id)">Eliminar</button></div>}</div></article>}</div></section>
+            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><div class="schedule-menu-wrap"><button class="more-button" type="button" aria-label="Más opciones" @onclick="ToggleScheduleMenu"><i class="icon icon-ellipsis"></i></button>@if (ScheduleMenuVisible){<div class="schedule-menu">@if (Sesion.Rol == "Veterinario"){<button type="button" @onclick="AbrirModalNuevaCita"><i class="icon icon-calendar-plus"></i> Agregar cita</button>}<a href="/agenda" @onclick="CerrarMenus"><i class="icon icon-list"></i> Ver todas</a></div>}</div></div><div class="schedule-list">@foreach (var cita in ProximasCitas){<article class="schedule-item @CitaTheme(cita.Tipo)"><span class="schedule-icon"><i class="icon @CitaIcon(cita.Tipo)"></i></span><div><strong>@cita.Titulo</strong><span>@cita.Hora</span></div>@if (Sesion.Rol == "Veterinario"){<div class="schedule-action-wrap"><button class="schedule-chevron-button" type="button" aria-label="Opciones de @cita.Titulo" @onclick="() => ToggleCitaMenu(cita.Id)"><i class="icon icon-chevron-right schedule-chevron"></i></button>@if (CitaMenuId == cita.Id){<div class="cita-context-menu"><button type="button" @onclick="() => MarcarCita(cita.Id)">Marcar como completada</button><button type="button" @onclick="() => SolicitarEliminarCita(cita.Id)">Eliminar</button></div>}</div>}</article>}</div></section>
         </aside>
     </main>
+    </RolRequerido>
 </div>
 
 <ZeusModal IsOpen="@ActivityModalVisible" OnClose="CerrarActivityModal" AriaLabelledBy="new-activity-title">
@@ -57,6 +60,8 @@
     </ChildContent>
 </ZeusModal>
 
+@if (Sesion.Rol == "Veterinario")
+{
 <ZeusModal IsOpen="@CitaModalVisible" OnClose="CerrarModalCita" AriaLabelledBy="new-appointment-title">
     <HeaderContent>
         <div><p class="eyebrow">Upcoming schedule</p><h2 id="new-appointment-title">Agregar cita</h2></div>
@@ -71,8 +76,9 @@
             </form>
     </ChildContent>
 </ZeusModal>
+}
 
-@if (CitaEliminarId is not null)
+@if (Sesion.Rol == "Veterinario" && CitaEliminarId is not null)
 {
     <div class="zeus-modal" role="dialog" aria-modal="true">
         <div class="zeus-modal-content" style="max-width:380px">
@@ -239,6 +245,8 @@
 
     private void AbrirModalNuevaCita()
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         ScheduleMenuVisible = false;
         NuevaCita = new NuevaCitaForm { MascotaId = TodasLasMascotas.FirstOrDefault()?.Id ?? "" };
         CitaModalVisible = true;
@@ -248,12 +256,16 @@
 
     private void ToggleCitaMenu(string citaId)
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         CitaMenuId = CitaMenuId == citaId ? null : citaId;
         ScheduleMenuVisible = false;
     }
 
     private void MarcarCita(string citaId)
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         Service.MarcarCitaCompletada(citaId);
         CitaMenuId = null;
         CargarCitas();
@@ -262,6 +274,8 @@
 
     private void SolicitarEliminarCita(string citaId)
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         CitaMenuId = null;
         CitaEliminarId = citaId;
     }
@@ -270,7 +284,7 @@
 
     private async Task EliminarCitaConfirmada()
     {
-        if (CitaEliminarId is null) return;
+        if (Sesion.Rol != "Veterinario" || CitaEliminarId is null) return;
 
         Service.EliminarCita(CitaEliminarId);
         CitaEliminarId = null;
@@ -281,6 +295,8 @@
 
     private async Task GuardarCita()
     {
+        if (Sesion.Rol != "Veterinario") return;
+
         if (string.IsNullOrWhiteSpace(NuevaCita.MascotaId) || string.IsNullOrWhiteSpace(NuevaCita.Titulo) || string.IsNullOrWhiteSpace(NuevaCita.Hora))
         {
             MostrarToast("Completa los datos de la cita.");

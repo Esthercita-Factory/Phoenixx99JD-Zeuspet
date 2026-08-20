@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<VeterinariaService>();
+builder.Services.AddScoped<SesionService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

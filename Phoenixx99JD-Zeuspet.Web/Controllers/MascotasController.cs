@@ -30,7 +30,7 @@ public class MascotasController : ControllerBase
     {
         try
         {
-            var mascota = _service.AgregarMascota(request.Nombre, request.Especie, request.Raza, request.Edad, request.ClienteId);
+            var mascota = _service.AgregarMascota(request.Nombre, request.Especie, request.Raza, request.Edad, request.ClienteId, "", "");
             return CreatedAtAction(nameof(Obtener), new { id = mascota.Id }, mascota);
         }
         catch (InvalidOperationException ex)
