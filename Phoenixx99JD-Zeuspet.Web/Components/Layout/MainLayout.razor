@@ -1,3 +1,26 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@using Microsoft.JSInterop
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
-@Body
+<div class="page-transition" @key="NavigationManager.Uri">
+    @Body
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _ = InvokeAsync(async () => await JS.InvokeVoidAsync("window.scrollTo", 0, 0));
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}

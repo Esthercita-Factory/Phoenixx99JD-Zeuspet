@@ -4,6 +4,8 @@ public sealed class SesionService
 {
     private string _rol = "";
 
+    public string ClienteId { get; set; } = "";
+
     public string Rol
     {
         get => _rol;

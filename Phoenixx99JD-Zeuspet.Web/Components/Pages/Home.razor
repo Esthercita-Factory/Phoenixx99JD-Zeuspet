@@ -38,7 +38,7 @@
         <aside class="zeus-sidebar">
             <section class="featured-pet">@if (MascotaSeleccionada is not null){<img src="@FotoMascota(MascotaSeleccionada)" alt="@MascotaSeleccionada.Nombre" /><div class="pet-overlay"><div><span>Meet your pet</span><h2>@MascotaSeleccionada.Nombre</h2><p>@MascotaSeleccionada.Especie · @MascotaSeleccionada.Raza</p></div><span class="pet-alert">@ActividadesSeleccionadas.Count()</span></div>}else{<div class="featured-pet-empty">Selecciona una mascota</div>}</section>
             <section class="calendar-card soft-card"><div class="card-heading"><h3>@MonthTitle</h3><div><button aria-label="Mes anterior" @onclick="PreviousMonth"><i class="icon icon-chevron-left"></i></button><button aria-label="Mes siguiente" @onclick="NextMonth"><i class="icon icon-chevron-right"></i></button></div></div><div class="calendar-week">@foreach (var day in CalendarDays){<span>@day</span>}</div><div class="calendar-dates">@foreach (var date in CalendarDates){<span class="@CalendarDateClass(date)" @onclick="() => SeleccionarFecha(date.Date)">@date.Date.Day</span>}</div></section>
-            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><div class="schedule-menu-wrap"><button class="more-button" type="button" aria-label="Más opciones" @onclick="ToggleScheduleMenu"><i class="icon icon-ellipsis"></i></button>@if (ScheduleMenuVisible){<div class="schedule-menu">@if (Sesion.Rol == "Veterinario"){<button type="button" @onclick="AbrirModalNuevaCita"><i class="icon icon-calendar-plus"></i> Agregar cita</button>}<a href="/agenda" @onclick="CerrarMenus"><i class="icon icon-list"></i> Ver todas</a></div>}</div></div><div class="schedule-list">@foreach (var cita in ProximasCitas){<article class="schedule-item @CitaTheme(cita.Tipo)"><span class="schedule-icon"><i class="icon @CitaIcon(cita.Tipo)"></i></span><div><strong>@cita.Titulo</strong><span>@cita.Hora</span></div>@if (Sesion.Rol == "Veterinario"){<div class="schedule-action-wrap"><button class="schedule-chevron-button" type="button" aria-label="Opciones de @cita.Titulo" @onclick="() => ToggleCitaMenu(cita.Id)"><i class="icon icon-chevron-right schedule-chevron"></i></button>@if (CitaMenuId == cita.Id){<div class="cita-context-menu"><button type="button" @onclick="() => MarcarCita(cita.Id)">Marcar como completada</button><button type="button" @onclick="() => SolicitarEliminarCita(cita.Id)">Eliminar</button></div>}</div>}</article>}</div></section>
+            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><div class="schedule-menu-wrap"><button class="more-button" type="button" aria-label="Más opciones" @onclick="ToggleScheduleMenu"><i class="icon icon-ellipsis"></i></button>@if (ScheduleMenuVisible){<div class="schedule-menu">@if (Sesion.Rol == "Usuario"){<button type="button" @onclick="AbrirModalSolicitudCita"><i class="icon icon-calendar-plus"></i> Solicitar cita</button>}@if (Sesion.Rol == "Veterinario"){<button type="button" @onclick="AbrirModalNuevaCita"><i class="icon icon-calendar-plus"></i> Agregar cita</button>}<a href="/agenda" @onclick="CerrarMenus"><i class="icon icon-list"></i> Ver todas</a></div>}</div></div><div class="schedule-list">@foreach (var cita in ProximasCitas){<article class="schedule-item @CitaTheme(cita.Tipo)"><span class="schedule-icon"><i class="icon @CitaIcon(cita.Tipo)"></i></span><div><strong>@cita.Titulo</strong><span>@cita.Hora</span>@if (cita.Estado == "Pendiente"){<small class="schedule-pending-badge">Pendiente de confirmación</small>}</div>@if (Sesion.Rol == "Veterinario"){<div class="schedule-action-wrap"><button class="schedule-chevron-button" type="button" aria-label="Opciones de @cita.Titulo" @onclick="() => ToggleCitaMenu(cita.Id)"><i class="icon icon-chevron-right schedule-chevron"></i></button>@if (CitaMenuId == cita.Id){<div class="cita-context-menu"><button type="button" @onclick="() => MarcarCita(cita.Id)">Marcar como completada</button><button type="button" @onclick="() => SolicitarEliminarCita(cita.Id)">Eliminar</button></div>}</div>}</article>}</div></section>
         </aside>
     </main>
     </RolRequerido>
@@ -78,6 +78,24 @@
 </ZeusModal>
 }
 
+@if (Sesion.Rol == "Usuario")
+{
+<ZeusModal IsOpen="@SolicitudCitaModalVisible" OnClose="CerrarModalSolicitudCita" AriaLabelledBy="request-appointment-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Upcoming schedule</p><h2 id="request-appointment-title">Solicitar cita</h2></div>
+    </HeaderContent>
+    <ChildContent>
+        <form class="pet-form" @onsubmit="GuardarSolicitudCita" @onsubmit:preventDefault>
+            <label>Mascota<input class="zeus-input" value="@MascotaSeleccionada?.Nombre" disabled /></label>
+            <label>Título<input class="zeus-input" @bind="NuevaSolicitudCita.Titulo" placeholder="Ej. Control veterinario" required /></label>
+            <label>Hora<input class="zeus-input" @bind="NuevaSolicitudCita.Hora" placeholder="Ej. 10:00 AM" required /></label>
+            <label>Tipo<select class="zeus-input" @bind="NuevaSolicitudCita.Tipo"><option value="veterinaria">Veterinaria</option><option value="aseo">Aseo</option><option value="social">Social</option><option value="otro">Otro</option></select></label>
+            <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalSolicitudCita">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Solicitar cita</button></div>
+        </form>
+    </ChildContent>
+</ZeusModal>
+}
+
 @if (Sesion.Rol == "Veterinario" && CitaEliminarId is not null)
 {
     <div class="zeus-modal" role="dialog" aria-modal="true">
@@ -103,8 +121,10 @@
     private List<CitaAgenda> ProximasCitas { get; set; } = [];
     private NuevaActividadForm NuevaActividad { get; set; } = new();
     private NuevaCitaForm NuevaCita { get; set; } = new();
+    private NuevaSolicitudCitaForm NuevaSolicitudCita { get; set; } = new();
     private bool ActivityModalVisible { get; set; }
     private bool CitaModalVisible { get; set; }
+    private bool SolicitudCitaModalVisible { get; set; }
     private bool ScheduleMenuVisible { get; set; }
     private bool Guardando { get; set; }
     private string? CitaMenuId { get; set; }
@@ -161,7 +181,9 @@
 
     protected override void OnInitialized()
     {
-        clienteActualId = Service.ListarClientes().FirstOrDefault()?.Id;
+        clienteActualId = string.IsNullOrWhiteSpace(Sesion.ClienteId)
+            ? Service.ListarClientes().FirstOrDefault()?.Id
+            : Sesion.ClienteId;
         CargarMascotasActuales();
         CargarCitas();
     }
@@ -205,7 +227,13 @@
         await JS.InvokeVoidAsync("renderRadarChart", "quality-chart", evaluationLabels, evaluationValues);
     }
 
-    private void CargarCitas() => ProximasCitas = Service.ListarProximasCitas();
+    private void CargarCitas()
+    {
+        var citas = Service.ListarProximasCitas();
+        ProximasCitas = Sesion.Rol == "Usuario"
+            ? citas.Where(cita => MascotasActuales.Any(mascota => mascota.Id == cita.MascotaId)).ToList()
+            : citas.Where(cita => cita.Estado == "Confirmada").ToList();
+    }
 
     private string IconoEspecie(string especie) => especie.ToLowerInvariant() switch
     {
@@ -253,6 +281,23 @@
     }
 
     private void CerrarModalCita() => CitaModalVisible = false;
+
+    private void AbrirModalSolicitudCita()
+    {
+        if (Sesion.Rol != "Usuario") return;
+
+        ScheduleMenuVisible = false;
+        if (MascotaSeleccionada is null)
+        {
+            MostrarToast("Selecciona una mascota para solicitar una cita.");
+            return;
+        }
+
+        NuevaSolicitudCita = new NuevaSolicitudCitaForm();
+        SolicitudCitaModalVisible = true;
+    }
+
+    private void CerrarModalSolicitudCita() => SolicitudCitaModalVisible = false;
 
     private void ToggleCitaMenu(string citaId)
     {
@@ -311,6 +356,27 @@
         CitaModalVisible = false;
         Guardando = false;
         MostrarToast("Cita agregada correctamente.");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task GuardarSolicitudCita()
+    {
+        if (Sesion.Rol != "Usuario" || MascotaSeleccionada is null) return;
+
+        if (string.IsNullOrWhiteSpace(NuevaSolicitudCita.Titulo) || string.IsNullOrWhiteSpace(NuevaSolicitudCita.Hora))
+        {
+            MostrarToast("Completa los datos de la cita.");
+            return;
+        }
+
+        Guardando = true;
+        await InvokeAsync(StateHasChanged);
+
+        Service.SolicitarCita(MascotaSeleccionada.Id, NuevaSolicitudCita.Titulo.Trim(), NuevaSolicitudCita.Hora.Trim(), NuevaSolicitudCita.Tipo);
+        CargarCitas();
+        SolicitudCitaModalVisible = false;
+        Guardando = false;
+        MostrarToast("Solicitud enviada correctamente.");
         await InvokeAsync(StateHasChanged);
     }
 
@@ -392,6 +458,13 @@
     private sealed class NuevaCitaForm
     {
         public string MascotaId { get; set; } = "";
+        public string Titulo { get; set; } = "";
+        public string Hora { get; set; } = "";
+        public string Tipo { get; set; } = "veterinaria";
+    }
+
+    private sealed class NuevaSolicitudCitaForm
+    {
         public string Titulo { get; set; } = "";
         public string Hora { get; set; } = "";
         public string Tipo { get; set; } = "veterinaria";

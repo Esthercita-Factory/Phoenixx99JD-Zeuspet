@@ -33,7 +33,40 @@ public class VeterinariaServiceTests
         Assert.Equal(mascota.Id, cita.MascotaId);
         Assert.Equal("Control anual", cita.Titulo);
         Assert.False(cita.Completada);
+        Assert.Equal("Confirmada", cita.Estado);
         Assert.Contains(cita, service.ListarCitasDeMascota(mascota.Id));
+    }
+
+    [Fact]
+    public void SolicitarCita_DeberiaCrearUnaCitaPendiente()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+
+        var cita = service.SolicitarCita(mascota.Id, "Consulta general", "09:00 AM", "veterinaria");
+
+        Assert.Equal("Pendiente", cita.Estado);
+        Assert.Contains(cita, service.ListarCitasPendientes());
+    }
+
+    [Fact]
+    public void ConfirmarYRechazarCita_DeberianActualizarEstadoYNotificarAlDueno()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+        var citaConfirmada = service.SolicitarCita(mascota.Id, "Vacunación", "10:00 AM", "veterinaria");
+        var citaRechazada = service.SolicitarCita(mascota.Id, "Aseo", "11:00 AM", "aseo");
+
+        Assert.True(service.ConfirmarCita(citaConfirmada.Id));
+        Assert.True(service.RechazarCita(citaRechazada.Id));
+
+        Assert.Equal("Confirmada", citaConfirmada.Estado);
+        Assert.Equal("Rechazada", citaRechazada.Estado);
+        Assert.Empty(service.ListarCitasPendientes());
+
+        var notificaciones = service.ListarNotificacionesDeCliente(mascota.ClienteId);
+        Assert.Contains(notificaciones, notificacion => notificacion.Tipo == "Cita" && notificacion.Mensaje.Contains("confirmada"));
+        Assert.Contains(notificaciones, notificacion => notificacion.Tipo == "Cita" && notificacion.Mensaje.Contains("rechazada"));
     }
 
     [Fact]
@@ -86,7 +119,7 @@ public class VeterinariaServiceTests
         var service = CrearServicio();
         var mascota = ObtenerZeus(service);
 
-        var evaluacion = service.AgregarEvaluacion(mascota.Id, 8, 9, 7, 10);
+        var evaluacion = service.AgregarEvaluacion(mascota.Id, 8, 9, 7, 10, "Evaluación de prueba.");
 
         Assert.NotNull(evaluacion.Id);
         Assert.Equal(mascota.Id, evaluacion.MascotaId);
@@ -94,6 +127,7 @@ public class VeterinariaServiceTests
         Assert.Equal(9, evaluacion.Higiene);
         Assert.Equal(7, evaluacion.Movimiento);
         Assert.Equal(10, evaluacion.Animo);
+        Assert.Equal("Evaluación de prueba.", evaluacion.Comentario);
         Assert.Equal(8.5, evaluacion.Promedio);
         Assert.Contains(evaluacion, service.ListarEvaluacionesDeMascota(mascota.Id));
     }
@@ -107,7 +141,7 @@ public class VeterinariaServiceTests
         var mascota = ObtenerZeus(service);
 
         var excepcion = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            service.AgregarEvaluacion(mascota.Id, puntaje, 5, 5, 5));
+            service.AgregarEvaluacion(mascota.Id, puntaje, 5, 5, 5, "Comentario"));
 
         Assert.Equal("comportamiento", excepcion.ParamName);
     }
@@ -125,6 +159,55 @@ public class VeterinariaServiceTests
         Assert.Equal("Perdida de apetito", consulta.Motivo);
         Assert.Equal("Observar durante 48 horas.", consulta.Notas);
         Assert.Contains(consulta, service.ListarConsultasDeMascota(mascota.Id));
+    }
+
+    [Fact]
+    public void ObtenerTimelineDeMascota_DeberiaCombinarYOrdenarLosEventos()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+
+        var consulta = service.AgregarConsulta(mascota.Id, "Control general", "Sin novedades.");
+        var evaluacion = service.AgregarEvaluacion(mascota.Id, 8, 9, 7, 10, "Evaluación adicional.");
+
+        var timeline = service.ObtenerTimelineDeMascota(mascota.Id);
+
+        Assert.Contains(timeline, evento => evento.Tipo == "Consulta" && evento.Titulo == consulta.Motivo && evento.Detalle == consulta.Notas);
+        Assert.Contains(timeline, evento => evento.Tipo == "Evaluacion" && evento.Titulo == $"Evaluación: {evaluacion.Promedio}/10");
+        Assert.Contains(timeline, evento => evento.Tipo == "Peso" && evento.Titulo.EndsWith(" kg"));
+        Assert.Contains(timeline, evento => evento.Tipo == "Actividad" && evento.Titulo == "Walking");
+        Assert.Equal(timeline.OrderByDescending(evento => evento.Fecha), timeline);
+    }
+
+    [Fact]
+    public void Notificaciones_DeberianCrearFiltrarYMarcarseComoLeidas()
+    {
+        var service = CrearServicio();
+        var cliente = service.AgregarCliente("Cliente de prueba", 30, "3000000000", "prueba@email.com", "Calle de prueba");
+        var mascota = service.AgregarMascota("Mascota de prueba", "Perro", "Mestizo", 2, cliente.Id, "", "");
+        var clienteId = mascota.ClienteId;
+
+        var evaluacion = service.AgregarEvaluacion(mascota.Id, 8, 9, 7, 10, "Evaluación de prueba.");
+        var consulta = service.AgregarConsulta(mascota.Id, "Control", "Todo bien.");
+        var otraNotificacion = service.CrearNotificacion("otro-cliente", "Mensaje privado", "Cita");
+
+        var notificaciones = service.ListarNotificacionesDeCliente(clienteId);
+
+        Assert.Equal(2, notificaciones.Count);
+        Assert.Equal(2, service.ContarNoLeidas(clienteId));
+        Assert.Contains(notificaciones, notificacion => notificacion.Tipo == "Evaluacion" && notificacion.Mensaje.Contains(mascota.Nombre));
+        Assert.Contains(notificaciones, notificacion => notificacion.Tipo == "Consulta" && notificacion.Mensaje.Contains(mascota.Nombre));
+        Assert.DoesNotContain(notificaciones, notificacion => notificacion.Id == otraNotificacion.Id);
+
+        Assert.True(service.MarcarComoLeida(notificaciones[0].Id));
+        Assert.Equal(1, service.ContarNoLeidas(clienteId));
+
+        service.MarcarTodasComoLeidas(clienteId);
+
+        Assert.Equal(0, service.ContarNoLeidas(clienteId));
+        Assert.True(notificaciones.All(notificacion => notificacion.Leida));
+        Assert.NotNull(evaluacion);
+        Assert.NotNull(consulta);
     }
 
     [Fact]

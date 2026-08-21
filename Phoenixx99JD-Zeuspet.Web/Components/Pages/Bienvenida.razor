@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Phoenixx99JD_Zeuspet.Web.Services
 @inject SesionService Sesion
+@inject VeterinariaService Service
 @inject NavigationManager Navigation
 
 <main class="welcome-page">
@@ -45,6 +46,7 @@
 @code {
     private void SeleccionarRol(string rol)
     {
+        Sesion.ClienteId = rol == "Usuario" ? Service.ListarClientes().FirstOrDefault()?.Id ?? "" : "";
         Sesion.Rol = rol;
         Navigation.NavigateTo("/dashboard");
     }

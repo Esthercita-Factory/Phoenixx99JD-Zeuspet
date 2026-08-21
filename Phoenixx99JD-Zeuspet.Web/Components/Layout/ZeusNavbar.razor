@@ -18,29 +18,38 @@
     </nav>
     <div class="zeus-userbar">
         <button class="round-action" aria-label="Cambiar tema" @onclick="ToggleTheme"><i class="icon @(TemaOscuro ? "icon-sun" : "icon-moon")"></i></button>
-        <div class="notification-wrap">
-            <button class="round-action notification" aria-label="Notificaciones" @onclick="ToggleNotificaciones"><i class="icon icon-bell"></i>@if (NotificacionesPendientes > 0){<span></span>}</button>
-            @if (NotificacionesVisibles)
-            {
-                <div class="notification-dropdown">
-                    <div class="notif-header"><span>Notificaciones</span><span class="notif-count">@NotificacionesPendientes pendientes</span></div>
-                    @if (NotificacionesPendientes == 0)
+        @if (Sesion.Rol != "Veterinario")
+        {
+            <div class="notification-wrap">
+                <button class="round-action notification" aria-label="Notificaciones" aria-expanded="@NotificacionesVisibles" @onclick="ToggleNotificaciones">
+                    <i class="icon icon-bell"></i>
+                    @if (NotificacionesPendientes > 0)
                     {
-                        <div class="notif-empty">Sin notificaciones pendientes</div>
+                        <span class="notification-badge">@NotificacionesPendientes</span>
                     }
-                    else
-                    {
-                        @foreach (var notif in Notificaciones)
+                </button>
+                @if (NotificacionesVisibles)
+                {
+                    <div class="notification-dropdown">
+                        <div class="notif-header"><span>Notificaciones</span><span class="notif-count">@NotificacionesPendientes pendientes</span></div>
+                        @if (Notificaciones.Count == 0)
                         {
-                            <div class="notif-item">
-                                <span class="notif-icon" style="background:@notif.BackgroundColor;color:@notif.IconColor">@notif.Icono</span>
-                                <div><strong>@notif.Titulo</strong><span>@notif.Detalle</span></div>
-                            </div>
+                            <div class="notif-empty">Sin notificaciones</div>
                         }
-                    }
-                </div>
-            }
-        </div>
+                        else
+                        {
+                            @foreach (var notif in Notificaciones)
+                            {
+                                <div class="notif-item @TipoNotificacionClass(notif.Tipo)">
+                                    <span class="notif-dot @(notif.Leida ? "read" : "unread")" aria-hidden="true"></span>
+                                    <div><strong>@notif.Mensaje</strong><span>@FechaRelativa(notif.Fecha)</span></div>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        }
         <div class="role-switcher">
             <button class="role-badge" type="button" aria-expanded="@RolMenuVisible" @onclick="ToggleRolMenu">
                 <span class="role-badge-dot"></span>
@@ -60,7 +69,7 @@
     </div>
 </header>
 
-@if (NotificacionesVisibles)
+@if (NotificacionesVisibles && Sesion.Rol != "Veterinario")
 {
     <div style="position:fixed;inset:0;z-index:40" @onclick="CerrarNotificaciones"></div>
 }
@@ -78,8 +87,8 @@
     private bool NotificacionesVisibles { get; set; }
     private bool TemaOscuro { get; set; }
     private bool RolMenuVisible { get; set; }
-    private int NotificacionesPendientes => Notificaciones.Count;
-    private List<NotificacionItem> Notificaciones { get; set; } = [];
+    private int NotificacionesPendientes => Sesion.Rol == "Veterinario" ? 0 : Service.ContarNoLeidas(Sesion.ClienteId);
+    private List<Notificacion> Notificaciones { get; set; } = [];
     private string RolActual => string.IsNullOrWhiteSpace(Sesion.Rol) ? "Sin rol" : Sesion.Rol;
     private IReadOnlyList<NavItem> ItemsNavegacion => Sesion.Rol switch
     {
@@ -134,44 +143,20 @@
 
     private void CargarNotificaciones()
     {
-        Notificaciones = [];
-
-        var citas = Service.ListarProximasCitas();
-        foreach (var cita in citas)
-        {
-            var mascota = Service.BuscarMascotaPorId(cita.MascotaId);
-            var nombreMascota = mascota?.Nombre ?? "Mascota";
-            var tipoColor = cita.Tipo.ToLowerInvariant() switch
-            {
-                "veterinaria" => ("#fdf0ef", "#db8b83", "\ud83c\udfe5"),
-                "aseo" => ("#fff8ed", "#cf9a5b", "\u2702\ufe0f"),
-                "social" => ("#eff8f3", "var(--mint-dark)", "\ud83c\udfae"),
-                _ => ("#f0f3f1", "var(--muted)", "\ud83d\udcc5")
-            };
-            Notificaciones.Add(new NotificacionItem(
-                $"{cita.Titulo}",
-                $"{nombreMascota} · {cita.Hora}",
-                tipoColor.Item3,
-                tipoColor.Item1,
-                tipoColor.Item2));
-        }
-
-        var mascotasActivas = Service.ListarMascotas().Where(m => m.Estado == "En tratamiento").ToList();
-        foreach (var mascota in mascotasActivas)
-        {
-            Notificaciones.Add(new NotificacionItem(
-                $"{mascota.Nombre} en tratamiento",
-                "Requiere seguimiento",
-                "\ud83d\udc96",
-                "#e8f4ed",
-                "var(--mint-dark)"));
-        }
+        Notificaciones = Sesion.Rol == "Veterinario" || string.IsNullOrWhiteSpace(Sesion.ClienteId)
+            ? []
+            : Service.ListarNotificacionesDeCliente(Sesion.ClienteId);
     }
 
     private void ToggleNotificaciones()
     {
+        if (Sesion.Rol == "Veterinario") return;
+
         NotificacionesVisibles = !NotificacionesVisibles;
-        if (NotificacionesVisibles) CargarNotificaciones();
+        if (!NotificacionesVisibles) return;
+
+        CargarNotificaciones();
+        Service.MarcarTodasComoLeidas(Sesion.ClienteId);
     }
 
     private void CerrarNotificaciones() => NotificacionesVisibles = false;
@@ -184,8 +169,30 @@
         Navigation.NavigateTo("/", replace: true);
     }
 
-    private void NotificarCambioSesion() => _ = InvokeAsync(StateHasChanged);
+    private void NotificarCambioSesion()
+    {
+        NotificacionesVisibles = false;
+        CargarNotificaciones();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static string TipoNotificacionClass(string tipo) => tipo.ToLowerInvariant() switch
+    {
+        "evaluacion" => "tipo-evaluacion",
+        "consulta" => "tipo-consulta",
+        "cita" => "tipo-cita",
+        _ => "tipo-consulta"
+    };
+
+    private static string FechaRelativa(DateTime fecha)
+    {
+        var transcurrido = DateTime.Now - fecha;
+        if (transcurrido.TotalSeconds < 60) return "Ahora";
+        if (transcurrido.TotalMinutes < 60) return $"Hace {(int)transcurrido.TotalMinutes} min";
+        if (transcurrido.TotalHours < 24) return $"Hace {(int)transcurrido.TotalHours} h";
+        if (transcurrido.TotalDays < 7) return $"Hace {(int)transcurrido.TotalDays} días";
+        return fecha.ToString("dd/MM/yyyy");
+    }
 
     private sealed record NavItem(string Label, string Route, string Active);
-    private sealed record NotificacionItem(string Titulo, string Detalle, string Icono, string BackgroundColor, string IconColor);
 }

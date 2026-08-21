@@ -8,6 +8,7 @@ public class EvaluacionCalidadVida
     public int Higiene { get; set; }
     public int Movimiento { get; set; }
     public int Animo { get; set; }
+    public string Comentario { get; set; }
     public DateTime Fecha { get; set; }
 
     public double Promedio => (Comportamiento + Higiene + Movimiento + Animo) / 4.0;
@@ -19,7 +20,8 @@ public class EvaluacionCalidadVida
         int higiene,
         int movimiento,
         int animo,
-        DateTime fecha)
+        DateTime fecha,
+        string comentario = "")
     {
         Id = id;
         MascotaId = mascotaId;
@@ -28,5 +30,6 @@ public class EvaluacionCalidadVida
         Movimiento = movimiento;
         Animo = animo;
         Fecha = fecha;
+        Comentario = comentario;
     }
 }

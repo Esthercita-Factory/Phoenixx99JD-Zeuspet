@@ -10,7 +10,27 @@
     <RolRequerido Rol="Veterinario">
     <main class="agenda-page">
         <div class="pets-page-heading"><div><p class="eyebrow">Clinic calendar</p><h1>Agenda</h1><p class="welcome-copy">Todas las citas pendientes de tus pacientes.</p></div><a class="zeus-btn-primary" href="/dashboard">Volver al dashboard</a></div>
-        <section class="soft-card agenda-panel"><div class="section-heading"><div><p class="eyebrow">Upcoming schedule</p><h2>Próximas citas</h2></div><span class="panel-contador">@Citas.Count pendientes</span></div>
+        <section class="soft-card agenda-panel pending-requests-panel">
+            <div class="section-heading"><div><p class="eyebrow">Client requests</p><h2>Solicitudes pendientes</h2></div><span class="panel-contador">@SolicitudesPendientes.Count</span></div>
+            @if (SolicitudesPendientes.Count == 0)
+            {
+                <div class="agenda-empty-small"><i class="icon icon-calendar-check-2"></i><p>No hay solicitudes pendientes.</p></div>
+            }
+            else
+            {
+                <div class="pending-requests-list">
+                    @foreach (var solicitud in SolicitudesPendientes)
+                    {
+                        <article class="pending-request @CitaTheme(solicitud.Tipo)">
+                            <span class="schedule-icon"><i class="icon @CitaIcon(solicitud.Tipo)"></i></span>
+                            <div class="pending-request-info"><strong>@solicitud.Titulo</strong><span>@solicitud.Hora · @NombreMascota(solicitud.MascotaId)</span></div>
+                            <div class="pending-request-actions"><button class="zeus-btn-primary" type="button" @onclick="() => ConfirmarSolicitud(solicitud.Id)"><i class="icon icon-check"></i> Confirmar</button><button class="zeus-btn-ghost pending-reject-button" type="button" @onclick="() => RechazarSolicitud(solicitud.Id)"><i class="icon icon-x"></i> Rechazar</button></div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+        <section class="soft-card agenda-panel"><div class="section-heading"><div><p class="eyebrow">Upcoming schedule</p><h2>Próximas citas</h2></div><span class="panel-contador">@Citas.Count citas</span></div>
             @if (Citas.Count == 0)
             {
                 <div class="activities-empty"><i class="icon icon-calendar-off"></i><h2>Agenda al día</h2><p>No hay citas pendientes registradas.</p></div>
@@ -31,13 +51,38 @@
 
 @code {
     private List<CitaAgenda> Citas { get; set; } = [];
+    private List<CitaAgenda> SolicitudesPendientes { get; set; } = [];
     private List<Mascota> Mascotas { get; set; } = [];
     private string? ToastMessage { get; set; }
 
     protected override void OnInitialized()
     {
         Mascotas = Service.ListarMascotas();
-        Citas = Service.ListarProximasCitas();
+        CargarAgenda();
+    }
+
+    private void CargarAgenda()
+    {
+        SolicitudesPendientes = Service.ListarCitasPendientes();
+        Citas = Service.ListarProximasCitas()
+            .Where(cita => cita.Estado == "Confirmada")
+            .ToList();
+    }
+
+    private void ConfirmarSolicitud(string id)
+    {
+        if (!Service.ConfirmarCita(id)) return;
+
+        CargarAgenda();
+        ToastMessage = "Cita confirmada correctamente.";
+    }
+
+    private void RechazarSolicitud(string id)
+    {
+        if (!Service.RechazarCita(id)) return;
+
+        CargarAgenda();
+        ToastMessage = "Solicitud rechazada.";
     }
 
     private string NombreMascota(string mascotaId) => Mascotas.FirstOrDefault(mascota => mascota.Id == mascotaId)?.Nombre ?? "Mascota";

@@ -12,6 +12,7 @@ public class VeterinariaService
     private readonly List<CitaAgenda> _citas = [];
     private readonly List<Consulta> _consultas = [];
     private readonly List<RegistroPeso> _registrosPeso = [];
+    private readonly List<Notificacion> _notificaciones = [];
     private readonly List<PublicacionComunidad> _publicaciones = [];
     private readonly List<ComentarioComunidad> _comentariosComunidad = [];
     private readonly Dictionary<string, Cliente> _clientesPorId = [];
@@ -52,6 +53,7 @@ public class VeterinariaService
         if (cliente == null) return false;
 
         _mascotas.RemoveAll(m => m.ClienteId == id);
+        _notificaciones.RemoveAll(notificacion => notificacion.ClienteId == id);
         _clientes.Remove(cliente);
         _clientesPorId.Remove(id);
         return true;
@@ -135,8 +137,10 @@ public class VeterinariaService
     {
         ValidarMascotaExiste(mascotaId);
 
+        var mascota = BuscarMascotaPorId(mascotaId)!;
         var consulta = new Consulta(GenerarId(), mascotaId, DateTime.Now, motivo, notas);
         _consultas.Add(consulta);
+        CrearNotificacion(mascota.ClienteId, $"Nueva consulta registrada para {mascota.Nombre}", "Consulta");
         return consulta;
     }
 
@@ -146,6 +150,39 @@ public class VeterinariaService
             .Where(consulta => consulta.MascotaId == mascotaId)
             .OrderByDescending(consulta => consulta.Fecha)
             .ToList();
+    }
+
+    public Notificacion CrearNotificacion(string clienteId, string mensaje, string tipo)
+    {
+        var notificacion = new Notificacion(GenerarId(), clienteId, mensaje, DateTime.Now, tipo);
+        _notificaciones.Add(notificacion);
+        return notificacion;
+    }
+
+    public List<Notificacion> ListarNotificacionesDeCliente(string clienteId)
+    {
+        return _notificaciones
+            .Where(notificacion => notificacion.ClienteId == clienteId)
+            .OrderByDescending(notificacion => notificacion.Fecha)
+            .ToList();
+    }
+
+    public int ContarNoLeidas(string clienteId) =>
+        _notificaciones.Count(notificacion => notificacion.ClienteId == clienteId && !notificacion.Leida);
+
+    public bool MarcarComoLeida(string id)
+    {
+        var notificacion = _notificaciones.FirstOrDefault(item => item.Id == id);
+        if (notificacion is null) return false;
+
+        notificacion.Leida = true;
+        return true;
+    }
+
+    public void MarcarTodasComoLeidas(string clienteId)
+    {
+        foreach (var notificacion in _notificaciones.Where(item => item.ClienteId == clienteId))
+            notificacion.Leida = true;
     }
 
     public Actividad AgregarActividad(string mascotaId, string nombre, string hora, string grupo, DateTime fecha)
@@ -186,7 +223,8 @@ public class VeterinariaService
         int comportamiento,
         int higiene,
         int movimiento,
-        int animo)
+        int animo,
+        string comentario = "")
     {
         ValidarPuntaje(comportamiento, nameof(comportamiento));
         ValidarPuntaje(higiene, nameof(higiene));
@@ -202,9 +240,12 @@ public class VeterinariaService
             higiene,
             movimiento,
             animo,
-            DateTime.Now);
+            DateTime.Now,
+            comentario);
 
         _evaluaciones.Add(evaluacion);
+        var mascota = BuscarMascotaPorId(mascotaId)!;
+        CrearNotificacion(mascota.ClienteId, $"Nueva evaluación registrada para {mascota.Nombre}", "Evaluacion");
         return evaluacion;
     }
 
@@ -216,6 +257,35 @@ public class VeterinariaService
             .ToList();
     }
 
+    public List<EventoTimeline> ObtenerTimelineDeMascota(string mascotaId)
+    {
+        var eventos = ListarConsultasDeMascota(mascotaId)
+            .Select(consulta => new EventoTimeline(
+                consulta.Fecha,
+                "Consulta",
+                consulta.Motivo,
+                consulta.Notas))
+            .Concat(ListarEvaluacionesDeMascota(mascotaId).Select(evaluacion => new EventoTimeline(
+                evaluacion.Fecha,
+                "Evaluacion",
+                $"Evaluación: {evaluacion.Promedio}/10",
+                $"Comportamiento: {evaluacion.Comportamiento} · Higiene: {evaluacion.Higiene} · Movimiento: {evaluacion.Movimiento} · Ánimo: {evaluacion.Animo}")))
+            .Concat(ListarRegistroPesoDeMascota(mascotaId).Select(registro => new EventoTimeline(
+                registro.Fecha,
+                "Peso",
+                $"{registro.Peso} kg",
+                "Registro de peso")))
+            .Concat(ListarActividadesDeMascota(mascotaId).Select(actividad => new EventoTimeline(
+                actividad.Fecha,
+                "Actividad",
+                actividad.Nombre,
+                $"{actividad.Hora} · {actividad.Grupo}")))
+            .OrderByDescending(evento => evento.Fecha)
+            .ToList();
+
+        return eventos;
+    }
+
     public EvaluacionCalidadVida? ObtenerUltimaEvaluacion(string mascotaId)
     {
         return _evaluaciones
@@ -223,14 +293,20 @@ public class VeterinariaService
             .MaxBy(e => e.Fecha);
     }
 
-    public CitaAgenda AgregarCita(string mascotaId, string titulo, string hora, string tipo)
+    public CitaAgenda AgregarCita(string mascotaId, string titulo, string hora, string tipo, string estado = "Confirmada")
     {
         ValidarMascotaExiste(mascotaId);
 
-        var cita = new CitaAgenda(GenerarId(), mascotaId, titulo, hora, tipo);
+        var cita = new CitaAgenda(GenerarId(), mascotaId, titulo, hora, tipo)
+        {
+            Estado = estado
+        };
         _citas.Add(cita);
         return cita;
     }
+
+    public CitaAgenda SolicitarCita(string mascotaId, string titulo, string hora, string tipo) =>
+        AgregarCita(mascotaId, titulo, hora, tipo, "Pendiente");
 
     public List<CitaAgenda> ListarCitasDeMascota(string mascotaId)
     {
@@ -243,10 +319,22 @@ public class VeterinariaService
     public List<CitaAgenda> ListarProximasCitas()
     {
         return _citas
-            .Where(cita => !cita.Completada)
+            .Where(cita => !cita.Completada && cita.Estado != "Rechazada")
             .OrderBy(OrdenDeHora)
             .ToList();
     }
+
+    public List<CitaAgenda> ListarCitasPendientes()
+    {
+        return _citas
+            .Where(cita => !cita.Completada && cita.Estado == "Pendiente")
+            .OrderBy(OrdenDeHora)
+            .ToList();
+    }
+
+    public bool ConfirmarCita(string id) => ActualizarEstadoCita(id, "Confirmada", "confirmada");
+
+    public bool RechazarCita(string id) => ActualizarEstadoCita(id, "Rechazada", "rechazada");
 
     public bool MarcarCitaCompletada(string id)
     {
@@ -254,6 +342,24 @@ public class VeterinariaService
         if (cita == null) return false;
 
         cita.Completada = true;
+        return true;
+    }
+
+    private bool ActualizarEstadoCita(string id, string estado, string estadoMensaje)
+    {
+        var cita = _citas.FirstOrDefault(item => item.Id == id);
+        if (cita is null) return false;
+
+        cita.Estado = estado;
+        var mascota = BuscarMascotaPorId(cita.MascotaId);
+        if (mascota is not null)
+        {
+            CrearNotificacion(
+                mascota.ClienteId,
+                $"La cita \"{cita.Titulo}\" para {mascota.Nombre} fue {estadoMensaje}.",
+                "Cita");
+        }
+
         return true;
     }
 
@@ -396,13 +502,23 @@ public class VeterinariaService
 
         var zeus = AgregarMascota("Zeus", "Perro", "Pastor Aleman", 4, c1.Id, "Z-001", "");
         var luna = AgregarMascota("Luna", "Gato", "Siames", 2, c1.Id, "L-002", "");
-        AgregarMascota("Rocky", "Perro", "Bulldog Frances", 3, c2.Id, "R-003", "");
-        AgregarMascota("Mimi", "Gato", "Persa", 5, c2.Id, "M-004", "");
+        var rocky = AgregarMascota("Rocky", "Perro", "Bulldog Frances", 3, c2.Id, "R-003", "");
+        var mimi = AgregarMascota("Mimi", "Gato", "Persa", 5, c2.Id, "M-004", "");
         var max = AgregarMascota("Max", "Perro", "Golden Retriever", 6, c3.Id, "MX-005", "");
-        AgregarMascota("Coco", "Perro", "Chihuahua", 1, c4.Id, "C-006", "");
-        AgregarMascota("Pelusa", "Gato", "Angora", 3, c4.Id, "P-007", "");
-        AgregarMascota("Toby", "Perro", "Labrador", 7, c5.Id, "TB-008", "");
-        AgregarMascota("Nina", "Conejo", "Mini Lop", 2, c5.Id, "NN-009", "");
+        var coco = AgregarMascota("Coco", "Perro", "Chihuahua", 1, c4.Id, "C-006", "");
+        var pelusa = AgregarMascota("Pelusa", "Gato", "Angora", 3, c4.Id, "P-007", "");
+        var toby = AgregarMascota("Toby", "Perro", "Labrador", 7, c5.Id, "TB-008", "");
+        var nina = AgregarMascota("Nina", "Conejo", "Mini Lop", 2, c5.Id, "NN-009", "");
+
+        AgregarEvaluacion(zeus.Id, 9, 10, 9, 10, "Zeus se mostró muy atento y con excelente energía durante la revisión. Recomendamos mantener sus paseos largos.");
+        AgregarEvaluacion(luna.Id, 8, 9, 8, 9, "Luna estuvo tranquila en consulta y mantiene un buen estado general. Conviene continuar observando su sensibilidad digestiva.");
+        AgregarEvaluacion(rocky.Id, 7, 7, 8, 8, "Rocky se mostró tranquilo durante la consulta. Buen estado general, solo recomendamos vigilar su alimentación las próximas semanas.");
+        AgregarEvaluacion(mimi.Id, 9, 8, 7, 9, "Mimi toleró bien la manipulación y se encuentra estable. Sugerimos cuidar su pelaje y mantener controles periódicos.");
+        AgregarEvaluacion(max.Id, 8, 8, 6, 8, "Max colaboró muy bien durante la evaluación. Su ánimo es bueno, aunque conviene mantener el control de peso.");
+        AgregarEvaluacion(coco.Id, 8, 7, 9, 8, "Coco mostró mucha vitalidad para su edad. Recomendamos vigilar sus articulaciones y conservar rutinas suaves.");
+        AgregarEvaluacion(pelusa.Id, 9, 9, 8, 9, "Pelusa estuvo calmada y receptiva. Su condición es favorable; mantener el cepillado frecuente ayudará a su bienestar.");
+        AgregarEvaluacion(toby.Id, 6, 8, 7, 8, "Toby se encontró estable y con buen ánimo. Por su edad, aconsejamos revisar movilidad y sostener controles regulares.");
+        AgregarEvaluacion(nina.Id, 8, 9, 9, 8, "Nina reaccionó con curiosidad y se mantuvo activa. Su estado general es bueno; ofrecerle espacios seguros para moverse.");
 
         ActualizarDatosMascota(zeus.Id, 24.5, "Macho", "Activo", "Tiene mucha energía y disfruta los paseos largos.", "");
         ActualizarDatosMascota(luna.Id, 4.2, "Hembra", "Activo", "Sensibilidad digestiva. Prefiere alimento húmedo.", "");

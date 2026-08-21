@@ -33,12 +33,13 @@
                     }
                     else
                     {
-                        <div class="assessment-fields">
-                            <label class="score-field"><span>Comportamiento <strong>@NuevaEvaluacion.Comportamiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Comportamiento" /></label>
-                            <label class="score-field"><span>Higiene <strong>@NuevaEvaluacion.Higiene</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Higiene" /></label>
-                            <label class="score-field"><span>Movimiento <strong>@NuevaEvaluacion.Movimiento</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Movimiento" /></label>
-                            <label class="score-field"><span>Ánimo <strong>@NuevaEvaluacion.Animo</strong></span><input type="range" min="1" max="10" @bind="NuevaEvaluacion.Animo" /></label>
+                        <div class="equalizer-grid">
+                            <BarraEcualizador Etiqueta="Comportamiento" @bind-Valor="NuevaEvaluacion.Comportamiento" />
+                            <BarraEcualizador Etiqueta="Higiene" @bind-Valor="NuevaEvaluacion.Higiene" />
+                            <BarraEcualizador Etiqueta="Movimiento" @bind-Valor="NuevaEvaluacion.Movimiento" />
+                            <BarraEcualizador Etiqueta="Ánimo" @bind-Valor="NuevaEvaluacion.Animo" />
                         </div>
+                        <label class="assessment-comment">Comentario del veterinario<textarea class="zeus-input" @bind="NuevaEvaluacion.Comentario" rows="3" placeholder="Escribí tu observación sobre esta mascota..."></textarea></label>
                         <div class="assessment-form-footer"><span>Promedio estimado <strong>@PromedioNuevo.ToString("0.0")/10</strong></span><button class="zeus-btn-primary" disabled="@Guardando" @onclick="GuardarEvaluacion">@if (Guardando){<span class="zeus-spinner"></span>} <i class="icon icon-check"></i> Guardar evaluación</button></div>
                     }
                 }
@@ -60,7 +61,7 @@
                 }
                 else
                 {
-                    <div class="assessment-history-list">@foreach (var evaluacion in EvaluacionesRegistradas){<article class="soft-card evaluation-card"><div><p class="eyebrow">Evaluación</p><strong>@evaluacion.Fecha.ToString("dd/MM/yyyy HH:mm")</strong><div class="evaluation-breakdown"><span>Comportamiento <b>@evaluacion.Comportamiento</b></span><span>Higiene <b>@evaluacion.Higiene</b></span><span>Movimiento <b>@evaluacion.Movimiento</b></span><span>Ánimo <b>@evaluacion.Animo</b></span></div></div><div class="quality-score evaluation-score">@evaluacion.Promedio.ToString("0.0")<small>/10</small></div></article>}</div>
+                    <div class="assessment-history-list">@foreach (var evaluacion in EvaluacionesRegistradas){<article class="soft-card evaluation-card"><div class="evaluation-card-main"><div><p class="eyebrow">Evaluación</p><strong>@evaluacion.Fecha.ToString("dd/MM/yyyy HH:mm")</strong><div class="evaluation-breakdown"><span>Comportamiento <b>@evaluacion.Comportamiento</b></span><span>Higiene <b>@evaluacion.Higiene</b></span><span>Movimiento <b>@evaluacion.Movimiento</b></span><span>Ánimo <b>@evaluacion.Animo</b></span></div></div><div class="quality-score evaluation-score">@evaluacion.Promedio.ToString("0.0")<small>/10</small></div></div>@if (!string.IsNullOrWhiteSpace(evaluacion.Comentario)){<p class="evaluation-comment">@evaluacion.Comentario</p>}</article>}</div>
                 }
             </section>
         </section>
@@ -86,7 +87,9 @@
 
     protected override void OnInitialized()
     {
-        Mascotas = Service.ListarMascotas();
+        Mascotas = Sesion.Rol == "Usuario"
+            ? Service.ListarMascotas().Where(mascota => mascota.ClienteId == Sesion.ClienteId).ToList()
+            : Service.ListarMascotas();
     }
 
     private void SeleccionarMascota()
@@ -102,7 +105,7 @@
         Guardando = true;
         await InvokeAsync(StateHasChanged);
 
-        Service.AgregarEvaluacion(MascotaSeleccionadaId, NuevaEvaluacion.Comportamiento, NuevaEvaluacion.Higiene, NuevaEvaluacion.Movimiento, NuevaEvaluacion.Animo);
+        Service.AgregarEvaluacion(MascotaSeleccionadaId, NuevaEvaluacion.Comportamiento, NuevaEvaluacion.Higiene, NuevaEvaluacion.Movimiento, NuevaEvaluacion.Animo, NuevaEvaluacion.Comentario.Trim());
         EvaluacionesRegistradas = Service.ListarEvaluacionesDeMascota(MascotaSeleccionadaId);
         NuevaEvaluacion = new NuevaEvaluacionForm();
         Guardando = false;
@@ -130,5 +133,6 @@
         public int Higiene { get; set; } = 5;
         public int Movimiento { get; set; } = 5;
         public int Animo { get; set; } = 5;
+        public string Comentario { get; set; } = "";
     }
 }

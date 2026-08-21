@@ -7,6 +7,7 @@ public class CitaAgenda
     public string Titulo { get; set; }
     public string Hora { get; set; }
     public string Tipo { get; set; }
+    public string Estado { get; set; } = "Confirmada";
     public bool Completada { get; set; } = false;
 
     public CitaAgenda(string id, string mascotaId, string titulo, string hora, string tipo)

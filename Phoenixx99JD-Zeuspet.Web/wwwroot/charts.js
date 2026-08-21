@@ -44,6 +44,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: 4 },
                 plugins: { legend: { display: false }, tooltip: { enabled: true } },
                 scales: {
                     x: { display: true, grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
@@ -64,6 +65,7 @@
         const fillAlpha = dark ? "0.25" : "0.18";
         const gridCol = dark ? gridColorDark : gridColor;
         const labelColor = dark ? "#8fa5a0" : "#6b857d";
+        const mutedColor = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() || labelColor;
 
         new Chart(canvas, {
             type: "radar",
@@ -84,6 +86,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: compact ? 10 : 4 },
                 plugins: { legend: { display: false }, tooltip: { enabled: true } },
                 scales: {
                     r: {
@@ -92,7 +95,7 @@
                         max: 10,
                         grid: { color: gridCol, lineWidth: compact ? 0.7 : 1 },
                         angleLines: { color: gridCol, lineWidth: compact ? 0.7 : 1 },
-                        pointLabels: { display: !compact, color: labelColor, font: { size: compact ? 8 : 11, weight: "600" } },
+                        pointLabels: { display: true, color: compact ? mutedColor : labelColor, font: { size: compact ? 9 : 11, weight: "600" } },
                         ticks: { display: false }
                     }
                 }
