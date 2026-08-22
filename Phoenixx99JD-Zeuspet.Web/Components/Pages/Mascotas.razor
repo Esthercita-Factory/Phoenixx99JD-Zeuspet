@@ -64,7 +64,7 @@
                              {
                                  <small class="pet-card-no-evaluation">Sin evaluación</small>
                              }
-                             <canvas id="mini-chart-@mascota.Id" class="pet-card-chart"></canvas>
+                             <div class="pet-card-chart-wrap"><canvas id="mini-chart-@mascota.Id"></canvas></div>
                          </button>
                     }
                 </div>
@@ -284,7 +284,7 @@
                 evaluacion.Animo
             };
 
-            await JS.InvokeVoidAsync("renderRadarChart", $"mini-chart-{mascota.Id}", labels, valores, true);
+            await JS.InvokeVoidAsync("renderRadarChart", $"mini-chart-{mascota.Id}", labels, valores);
         }
     }
 

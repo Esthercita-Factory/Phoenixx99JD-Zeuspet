@@ -39,6 +39,10 @@
             <section class="featured-pet">@if (MascotaSeleccionada is not null){<img src="@FotoMascota(MascotaSeleccionada)" alt="@MascotaSeleccionada.Nombre" /><div class="pet-overlay"><div><span>Meet your pet</span><h2>@MascotaSeleccionada.Nombre</h2><p>@MascotaSeleccionada.Especie · @MascotaSeleccionada.Raza</p></div><span class="pet-alert">@ActividadesSeleccionadas.Count()</span></div>}else{<div class="featured-pet-empty">Selecciona una mascota</div>}</section>
             <section class="calendar-card soft-card"><div class="card-heading"><h3>@MonthTitle</h3><div><button aria-label="Mes anterior" @onclick="PreviousMonth"><i class="icon icon-chevron-left"></i></button><button aria-label="Mes siguiente" @onclick="NextMonth"><i class="icon icon-chevron-right"></i></button></div></div><div class="calendar-week">@foreach (var day in CalendarDays){<span>@day</span>}</div><div class="calendar-dates">@foreach (var date in CalendarDates){<span class="@CalendarDateClass(date)" @onclick="() => SeleccionarFecha(date.Date)">@date.Date.Day</span>}</div></section>
             <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Don't miss out</p><h3>Upcoming schedule</h3></div><div class="schedule-menu-wrap"><button class="more-button" type="button" aria-label="Más opciones" @onclick="ToggleScheduleMenu"><i class="icon icon-ellipsis"></i></button>@if (ScheduleMenuVisible){<div class="schedule-menu">@if (Sesion.Rol == "Usuario"){<button type="button" @onclick="AbrirModalSolicitudCita"><i class="icon icon-calendar-plus"></i> Solicitar cita</button>}@if (Sesion.Rol == "Veterinario"){<button type="button" @onclick="AbrirModalNuevaCita"><i class="icon icon-calendar-plus"></i> Agregar cita</button>}<a href="/agenda" @onclick="CerrarMenus"><i class="icon icon-list"></i> Ver todas</a></div>}</div></div><div class="schedule-list">@foreach (var cita in ProximasCitas){<article class="schedule-item @CitaTheme(cita.Tipo)"><span class="schedule-icon"><i class="icon @CitaIcon(cita.Tipo)"></i></span><div><strong>@cita.Titulo</strong><span>@cita.Hora</span>@if (cita.Estado == "Pendiente"){<small class="schedule-pending-badge">Pendiente de confirmación</small>}</div>@if (Sesion.Rol == "Veterinario"){<div class="schedule-action-wrap"><button class="schedule-chevron-button" type="button" aria-label="Opciones de @cita.Titulo" @onclick="() => ToggleCitaMenu(cita.Id)"><i class="icon icon-chevron-right schedule-chevron"></i></button>@if (CitaMenuId == cita.Id){<div class="cita-context-menu"><button type="button" @onclick="() => MarcarCita(cita.Id)">Marcar como completada</button><button type="button" @onclick="() => SolicitarEliminarCita(cita.Id)">Eliminar</button></div>}</div>}</article>}</div></section>
+            @if (Sesion.Rol == "Usuario")
+            {
+            <section class="schedule-card soft-card"><div class="card-heading"><div><p class="eyebrow">Solo para ti</p><h3>Recordatorios</h3></div><button class="more-button" type="button" aria-label="Agregar recordatorio" @onclick="AbrirModalRecordatorio"><i class="icon icon-plus"></i></button></div><div class="schedule-list">@if (ProximosRecordatorios.Count == 0){<div class="agenda-empty-small"><i class="icon icon-bell"></i><p>No tienes recordatorios pendientes.</p></div>}@foreach (var recordatorio in ProximosRecordatorios){<article class="schedule-item schedule-orange"><span class="schedule-icon"><i class="icon icon-pill"></i></span><div><strong>@recordatorio.Titulo</strong><span>@recordatorio.Fecha.ToString("dd MMM") · @recordatorio.Hora · @NombreMascotaDe(recordatorio.MascotaId)</span></div></article>}</div></section>
+            }
         </aside>
     </main>
     </RolRequerido>
@@ -70,6 +74,7 @@
             <form class="pet-form" @onsubmit="GuardarCita" @onsubmit:preventDefault>
                 <label>Mascota<select class="zeus-input" @bind="NuevaCita.MascotaId">@foreach (var pet in TodasLasMascotas){<option value="@pet.Id">@pet.Nombre</option>}</select></label>
                 <label>Título<input class="zeus-input" @bind="NuevaCita.Titulo" placeholder="Ej. Control veterinario" required /></label>
+                <label>Fecha<input class="zeus-input" type="date" @bind="NuevaCita.Fecha" /></label>
                 <label>Hora<input class="zeus-input" @bind="NuevaCita.Hora" placeholder="Ej. 10:00 AM" required /></label>
                 <label>Tipo<select class="zeus-input" @bind="NuevaCita.Tipo"><option value="veterinaria">Veterinaria</option><option value="aseo">Aseo</option><option value="social">Social</option><option value="otro">Otro</option></select></label>
                 <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalCita">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Guardar cita</button></div>
@@ -88,9 +93,28 @@
         <form class="pet-form" @onsubmit="GuardarSolicitudCita" @onsubmit:preventDefault>
             <label>Mascota<input class="zeus-input" value="@MascotaSeleccionada?.Nombre" disabled /></label>
             <label>Título<input class="zeus-input" @bind="NuevaSolicitudCita.Titulo" placeholder="Ej. Control veterinario" required /></label>
+            <label>Fecha<input class="zeus-input" type="date" @bind="NuevaSolicitudCita.Fecha" /></label>
             <label>Hora<input class="zeus-input" @bind="NuevaSolicitudCita.Hora" placeholder="Ej. 10:00 AM" required /></label>
             <label>Tipo<select class="zeus-input" @bind="NuevaSolicitudCita.Tipo"><option value="veterinaria">Veterinaria</option><option value="aseo">Aseo</option><option value="social">Social</option><option value="otro">Otro</option></select></label>
             <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalSolicitudCita">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Solicitar cita</button></div>
+        </form>
+    </ChildContent>
+</ZeusModal>
+}
+
+@if (Sesion.Rol == "Usuario")
+{
+<ZeusModal IsOpen="@RecordatorioModalVisible" OnClose="CerrarModalRecordatorio" AriaLabelledBy="new-reminder-title">
+    <HeaderContent>
+        <div><p class="eyebrow">Solo para ti</p><h2 id="new-reminder-title">Nuevo recordatorio</h2></div>
+    </HeaderContent>
+    <ChildContent>
+        <form class="pet-form" @onsubmit="GuardarRecordatorio" @onsubmit:preventDefault>
+            <label>Mascota<select class="zeus-input" @bind="NuevoRecordatorio.MascotaId">@foreach (var pet in MascotasActuales){<option value="@pet.Id">@pet.Nombre</option>}</select></label>
+            <label>Título<input class="zeus-input" @bind="NuevoRecordatorio.Titulo" placeholder="Ej. Pastilla antipulgas" required /></label>
+            <label>Fecha<input class="zeus-input" type="date" @bind="NuevoRecordatorio.Fecha" /></label>
+            <label>Hora<input class="zeus-input" @bind="NuevoRecordatorio.Hora" placeholder="Ej. 8:00 AM" required /></label>
+            <div class="modal-actions"><button class="zeus-btn-ghost" type="button" @onclick="CerrarModalRecordatorio">Cancelar</button><button class="zeus-btn-primary" type="submit" disabled="@Guardando">@if (Guardando){<span class="zeus-spinner"></span>} Guardar recordatorio</button></div>
         </form>
     </ChildContent>
 </ZeusModal>
@@ -122,9 +146,11 @@
     private NuevaActividadForm NuevaActividad { get; set; } = new();
     private NuevaCitaForm NuevaCita { get; set; } = new();
     private NuevaSolicitudCitaForm NuevaSolicitudCita { get; set; } = new();
+    private RecordatorioForm NuevoRecordatorio { get; set; } = new();
     private bool ActivityModalVisible { get; set; }
     private bool CitaModalVisible { get; set; }
     private bool SolicitudCitaModalVisible { get; set; }
+    private bool RecordatorioModalVisible { get; set; }
     private bool ScheduleMenuVisible { get; set; }
     private bool Guardando { get; set; }
     private string? CitaMenuId { get; set; }
@@ -173,10 +199,20 @@
 
     private bool TieneActividadFecha(DateTime fecha)
     {
-        var actividades = MascotaSeleccionadaId is null
+        var mascotaId = MascotaSeleccionadaId;
+
+        var hayActividades = mascotaId is null
             ? Service.ListarTodasLasActividades()
-            : Service.ListarActividadesDeMascota(MascotaSeleccionadaId);
-        return actividades.Any(actividad => actividad.Fecha.Date == fecha.Date);
+            : Service.ListarActividadesDeMascota(mascotaId);
+
+        if (hayActividades.Any(actividad => actividad.Fecha.Date == fecha.Date))
+            return true;
+
+        var citas = Service.ListarProximasCitas();
+        return citas.Any(cita =>
+            cita.Fecha.Date == fecha.Date &&
+            cita.Estado != "Rechazada" &&
+            (mascotaId is null || cita.MascotaId == mascotaId));
     }
 
     protected override void OnInitialized()
@@ -351,7 +387,7 @@
         Guardando = true;
         await InvokeAsync(StateHasChanged);
 
-        Service.AgregarCita(NuevaCita.MascotaId, NuevaCita.Titulo.Trim(), NuevaCita.Hora.Trim(), NuevaCita.Tipo);
+        Service.AgregarCita(NuevaCita.MascotaId, NuevaCita.Titulo.Trim(), NuevaCita.Hora.Trim(), NuevaCita.Tipo, "Confirmada", NuevaCita.Fecha);
         CargarCitas();
         CitaModalVisible = false;
         Guardando = false;
@@ -372,7 +408,7 @@
         Guardando = true;
         await InvokeAsync(StateHasChanged);
 
-        Service.SolicitarCita(MascotaSeleccionada.Id, NuevaSolicitudCita.Titulo.Trim(), NuevaSolicitudCita.Hora.Trim(), NuevaSolicitudCita.Tipo);
+        Service.SolicitarCita(MascotaSeleccionada.Id, NuevaSolicitudCita.Titulo.Trim(), NuevaSolicitudCita.Hora.Trim(), NuevaSolicitudCita.Tipo, NuevaSolicitudCita.Fecha);
         CargarCitas();
         SolicitudCitaModalVisible = false;
         Guardando = false;
@@ -459,6 +495,7 @@
     {
         public string MascotaId { get; set; } = "";
         public string Titulo { get; set; } = "";
+        public DateTime Fecha { get; set; } = DateTime.Today;
         public string Hora { get; set; } = "";
         public string Tipo { get; set; } = "veterinaria";
     }
@@ -466,7 +503,57 @@
     private sealed class NuevaSolicitudCitaForm
     {
         public string Titulo { get; set; } = "";
+        public DateTime Fecha { get; set; } = DateTime.Today;
         public string Hora { get; set; } = "";
         public string Tipo { get; set; } = "veterinaria";
     }
+
+    private sealed class RecordatorioForm
+    {
+        public string MascotaId { get; set; } = "";
+        public string Titulo { get; set; } = "";
+        public DateTime Fecha { get; set; } = DateTime.Today;
+        public string Hora { get; set; } = "";
+    }
+
+    private List<Recordatorio> ProximosRecordatorios =>
+        clienteActualId is null ? [] : Service.ListarProximosRecordatoriosDeCliente(clienteActualId);
+
+    private void AbrirModalRecordatorio()
+    {
+        if (Sesion.Rol != "Usuario") return;
+
+        if (MascotasActuales.Count == 0)
+        {
+            MostrarToast("Primero agrega una mascota.");
+            return;
+        }
+
+        NuevoRecordatorio = new RecordatorioForm { MascotaId = MascotaSeleccionadaId ?? MascotasActuales[0].Id };
+        RecordatorioModalVisible = true;
+    }
+
+    private void CerrarModalRecordatorio() => RecordatorioModalVisible = false;
+
+    private async Task GuardarRecordatorio()
+    {
+        if (Sesion.Rol != "Usuario") return;
+
+        if (string.IsNullOrWhiteSpace(NuevoRecordatorio.Titulo) || string.IsNullOrWhiteSpace(NuevoRecordatorio.Hora))
+        {
+            MostrarToast("Completa los datos del recordatorio.");
+            return;
+        }
+
+        Guardando = true;
+        await InvokeAsync(StateHasChanged);
+
+        Service.AgregarRecordatorio(NuevoRecordatorio.MascotaId, NuevoRecordatorio.Titulo.Trim(), NuevoRecordatorio.Fecha, NuevoRecordatorio.Hora.Trim());
+        RecordatorioModalVisible = false;
+        Guardando = false;
+        MostrarToast("Recordatorio agregado correctamente.");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string NombreMascotaDe(string mascotaId) => Service.BuscarMascotaPorId(mascotaId)?.Nombre ?? "Mascota";
 }

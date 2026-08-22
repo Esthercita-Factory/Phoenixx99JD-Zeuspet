@@ -98,6 +98,105 @@ public class VeterinariaServiceTests
     }
 
     [Fact]
+    public void SolicitarCita_ConFecha_DeberiaGuardarLaFecha()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+        var fecha = new DateTime(2026, 8, 25);
+
+        var cita = service.SolicitarCita(mascota.Id, "Consulta general", "09:00 AM", "veterinaria", fecha);
+
+        Assert.Equal(fecha, cita.Fecha);
+    }
+
+    [Fact]
+    public void ConfirmarCita_DeberiaGenerarActividadPendienteDeLaMascota()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+        var fecha = new DateTime(2026, 8, 28);
+        var cita = service.SolicitarCita(mascota.Id, "Vacunación", "10:00 AM", "veterinaria", fecha);
+
+        Assert.True(service.ConfirmarCita(cita.Id));
+        Assert.Equal("Confirmada", cita.Estado);
+
+        var actividades = service.ListarActividadesDeMascota(mascota.Id);
+        var actividadCita = actividades.Single(actividad => actividad.CitaId == cita.Id);
+        Assert.Equal("Vacunación", actividadCita.Nombre);
+        Assert.Equal(fecha, actividadCita.Fecha);
+        Assert.Equal("10:00 AM", actividadCita.Hora);
+    }
+
+    [Fact]
+    public void RechazarCita_NoDeberiaDejarActividadGenerada()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+        var cita = service.SolicitarCita(mascota.Id, "Aseo", "11:00 AM", "aseo");
+
+        Assert.True(service.RechazarCita(cita.Id));
+
+        Assert.DoesNotContain(service.ListarActividadesDeMascota(mascota.Id), actividad => actividad.CitaId == cita.Id);
+    }
+
+    [Fact]
+    public void EliminarCitaConfirmada_DeberiaEliminarLaActividadVinculada()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+        var cita = service.AgregarCita(mascota.Id, "Control", "03:00 PM", "veterinaria");
+
+        Assert.Contains(service.ListarActividadesDeMascota(mascota.Id), actividad => actividad.CitaId == cita.Id);
+
+        Assert.True(service.EliminarCita(cita.Id));
+        Assert.DoesNotContain(service.ListarActividadesDeMascota(mascota.Id), actividad => actividad.CitaId == cita.Id);
+    }
+
+    [Fact]
+    public void AgregarRecordatorio_DeberiaAsignarloALaMascota()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+        var fecha = new DateTime(2026, 8, 30);
+
+        var recordatorio = service.AgregarRecordatorio(mascota.Id, "Pastilla antipulgas", fecha, "8:00 AM");
+
+        Assert.NotNull(recordatorio.Id);
+        Assert.Equal(mascota.Id, recordatorio.MascotaId);
+        Assert.Equal(fecha, recordatorio.Fecha);
+        Assert.Contains(recordatorio, service.ListarRecordatoriosDeMascota(mascota.Id));
+    }
+
+    [Fact]
+    public void ListarProximosRecordatoriosDeCliente_DeberiaDevolverSoloLosDeSusMascotas()
+    {
+        var service = CrearServicio();
+        var zeus = ObtenerZeus(service);
+        var otraMascota = service.ListarMascotas().First(mascota => mascota.ClienteId != zeus.ClienteId);
+
+        var recordatorioZeus = service.AgregarRecordatorio(zeus.Id, "Pastilla", DateTime.Today.AddDays(1), "8:00 AM");
+        var recordatorioOtro = service.AgregarRecordatorio(otraMascota.Id, "Otra pastilla", DateTime.Today.AddDays(1), "9:00 AM");
+
+        var recordatorios = service.ListarProximosRecordatoriosDeCliente(zeus.ClienteId);
+
+        Assert.Contains(recordatorioZeus, recordatorios);
+        Assert.DoesNotContain(recordatorioOtro, recordatorios);
+        Assert.All(recordatorios, recordatorio => Assert.NotEqual(otraMascota.Id, recordatorio.MascotaId));
+    }
+
+    [Fact]
+    public void EliminarRecordatorio_DeberiaQuitarlo()
+    {
+        var service = CrearServicio();
+        var mascota = ObtenerZeus(service);
+        var recordatorio = service.AgregarRecordatorio(mascota.Id, "Pastilla", DateTime.Today.AddDays(2), "8:00 AM");
+
+        Assert.True(service.EliminarRecordatorio(recordatorio.Id));
+        Assert.DoesNotContain(recordatorio, service.ListarRecordatoriosDeMascota(mascota.Id));
+        Assert.False(service.EliminarRecordatorio(recordatorio.Id));
+    }
+
+    [Fact]
     public void AgregarRegistroPeso_DeberiaGuardarPesoYFecha()
     {
         var service = CrearServicio();

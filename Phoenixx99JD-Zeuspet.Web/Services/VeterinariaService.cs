@@ -10,6 +10,7 @@ public class VeterinariaService
     private readonly List<Actividad> _actividades = [];
     private readonly List<EvaluacionCalidadVida> _evaluaciones = [];
     private readonly List<CitaAgenda> _citas = [];
+    private readonly List<Recordatorio> _recordatorios = [];
     private readonly List<Consulta> _consultas = [];
     private readonly List<RegistroPeso> _registrosPeso = [];
     private readonly List<Notificacion> _notificaciones = [];
@@ -114,6 +115,7 @@ public class VeterinariaService
         _actividades.RemoveAll(a => a.MascotaId == id);
         _evaluaciones.RemoveAll(e => e.MascotaId == id);
         _citas.RemoveAll(c => c.MascotaId == id);
+        _recordatorios.RemoveAll(r => r.MascotaId == id);
         _consultas.RemoveAll(c => c.MascotaId == id);
         _registrosPeso.RemoveAll(r => r.MascotaId == id);
         BuscarClientePorId(mascota.ClienteId)?.Mascotas.Remove(mascota);
@@ -200,6 +202,36 @@ public class VeterinariaService
     }
 
     public List<Actividad> ListarTodasLasActividades() => _actividades.ToList();
+
+    public Recordatorio AgregarRecordatorio(string mascotaId, string titulo, DateTime fecha, string hora)
+    {
+        ValidarMascotaExiste(mascotaId);
+
+        var recordatorio = new Recordatorio(GenerarId(), mascotaId, titulo, fecha, hora);
+        _recordatorios.Add(recordatorio);
+        return recordatorio;
+    }
+
+    public List<Recordatorio> ListarRecordatoriosDeMascota(string mascotaId) =>
+        _recordatorios
+            .Where(recordatorio => recordatorio.MascotaId == mascotaId)
+            .OrderBy(OrdenDeRecordatorio)
+            .ToList();
+
+    public List<Recordatorio> ListarProximosRecordatoriosDeCliente(string clienteId)
+    {
+        var mascotasDelCliente = ListarMascotasDeCliente(clienteId).Select(m => m.Id).ToHashSet();
+        return _recordatorios
+            .Where(recordatorio => mascotasDelCliente.Contains(recordatorio.MascotaId))
+            .OrderBy(OrdenDeRecordatorio)
+            .ToList();
+    }
+
+    public bool EliminarRecordatorio(string id)
+    {
+        var recordatorio = _recordatorios.FirstOrDefault(item => item.Id == id);
+        return recordatorio != null && _recordatorios.Remove(recordatorio);
+    }
 
     public RegistroPeso AgregarRegistroPeso(string mascotaId, double peso, DateTime fecha)
     {
@@ -293,20 +325,24 @@ public class VeterinariaService
             .MaxBy(e => e.Fecha);
     }
 
-    public CitaAgenda AgregarCita(string mascotaId, string titulo, string hora, string tipo, string estado = "Confirmada")
+    public CitaAgenda AgregarCita(string mascotaId, string titulo, string hora, string tipo, string estado = "Confirmada", DateTime fecha = default)
     {
         ValidarMascotaExiste(mascotaId);
 
-        var cita = new CitaAgenda(GenerarId(), mascotaId, titulo, hora, tipo)
+        var cita = new CitaAgenda(GenerarId(), mascotaId, titulo, hora, tipo, fecha)
         {
             Estado = estado
         };
         _citas.Add(cita);
+
+        if (estado == "Confirmada")
+            CrearActividadDesdeCita(cita);
+
         return cita;
     }
 
-    public CitaAgenda SolicitarCita(string mascotaId, string titulo, string hora, string tipo) =>
-        AgregarCita(mascotaId, titulo, hora, tipo, "Pendiente");
+    public CitaAgenda SolicitarCita(string mascotaId, string titulo, string hora, string tipo, DateTime fecha = default) =>
+        AgregarCita(mascotaId, titulo, hora, tipo, "Pendiente", fecha);
 
     public List<CitaAgenda> ListarCitasDeMascota(string mascotaId)
     {
@@ -351,6 +387,11 @@ public class VeterinariaService
         if (cita is null) return false;
 
         cita.Estado = estado;
+        if (estado == "Confirmada")
+            CrearActividadDesdeCita(cita);
+        else
+            EliminarActividadDeCita(cita.Id);
+
         var mascota = BuscarMascotaPorId(cita.MascotaId);
         if (mascota is not null)
         {
@@ -366,8 +407,29 @@ public class VeterinariaService
     public bool EliminarCita(string id)
     {
         var cita = _citas.FirstOrDefault(c => c.Id == id);
-        return cita != null && _citas.Remove(cita);
+        if (cita == null) return false;
+
+        EliminarActividadDeCita(cita.Id);
+        return _citas.Remove(cita);
     }
+
+    private void CrearActividadDesdeCita(CitaAgenda cita)
+    {
+        if (_actividades.Any(actividad => actividad.CitaId == cita.Id))
+            return;
+
+        _actividades.Add(new Actividad(
+            GenerarId(),
+            cita.MascotaId,
+            cita.Titulo,
+            cita.Hora,
+            "Alone",
+            cita.Fecha,
+            cita.Id));
+    }
+
+    private void EliminarActividadDeCita(string citaId) =>
+        _actividades.RemoveAll(actividad => actividad.CitaId == citaId);
 
     public PublicacionComunidad CrearPublicacion(
         string clienteId,
@@ -487,10 +549,17 @@ public class VeterinariaService
 
     private static DateTime OrdenDeHora(CitaAgenda cita)
     {
-        return DateTime.TryParse(cita.Hora, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var hora)
-            ? hora
-            : DateTime.MaxValue;
+        var fecha = cita.Fecha.Date;
+        return fecha.Add(OrdenDeHoraTexto(cita.Hora).TimeOfDay);
     }
+
+    private static DateTime OrdenDeRecordatorio(Recordatorio recordatorio) =>
+        recordatorio.Fecha.Date.Add(OrdenDeHoraTexto(recordatorio.Hora).TimeOfDay);
+
+    private static DateTime OrdenDeHoraTexto(string hora) =>
+        DateTime.TryParse(hora, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var horaParseada)
+            ? horaParseada
+            : new DateTime(23, 59, 59);
 
     private void CargarDatosEjemplo()
     {
@@ -536,9 +605,12 @@ public class VeterinariaService
         AgregarRegistroPeso(luna.Id, 4.0, DateTime.Today.AddMonths(-2).AddDays(10));
         AgregarRegistroPeso(luna.Id, 4.2, DateTime.Today.AddMonths(-1).AddDays(5));
 
-        AgregarCita(zeus.Id, "Veterinary Appointment", "10:00 AM", "veterinaria");
-        AgregarCita(_mascotas.First(m => m.Nombre == "Luna").Id, "Grooming", "2:00 PM", "aseo");
-        AgregarCita(_mascotas.First(m => m.Nombre == "Max").Id, "Playing & Socializing", "5:00 PM", "social");
+        AgregarCita(zeus.Id, "Veterinary Appointment", "10:00 AM", "veterinaria", "Confirmada", DateTime.Today);
+        AgregarCita(_mascotas.First(m => m.Nombre == "Luna").Id, "Grooming", "2:00 PM", "aseo", "Confirmada", DateTime.Today.AddDays(2));
+        AgregarCita(_mascotas.First(m => m.Nombre == "Max").Id, "Playing & Socializing", "5:00 PM", "social", "Confirmada", DateTime.Today.AddDays(4));
+
+        AgregarRecordatorio(zeus.Id, "Pastilla antipulgas", DateTime.Today.AddDays(1), "8:00 AM");
+        AgregarRecordatorio(luna.Id, "Pastilla desparasitante", DateTime.Today.AddDays(3), "9:30 AM");
 
         var tipZeus = CrearPublicacion(
             c1.Id,

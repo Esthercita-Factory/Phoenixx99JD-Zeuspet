@@ -8,8 +8,9 @@ public class Actividad
     public string Hora { get; set; }
     public string Grupo { get; set; }
     public DateTime Fecha { get; set; }
+    public string? CitaId { get; set; }
 
-    public Actividad(string id, string mascotaId, string nombre, string hora, string grupo, DateTime fecha)
+    public Actividad(string id, string mascotaId, string nombre, string hora, string grupo, DateTime fecha, string? citaId = null)
     {
         Id = id;
         MascotaId = mascotaId;
@@ -17,5 +18,6 @@ public class Actividad
         Hora = hora;
         Grupo = grupo;
         Fecha = fecha;
+        CitaId = citaId;
     }
 }

@@ -3,6 +3,7 @@
 @using Phoenixx99JD_Zeuspet.Web.Models
 @using Phoenixx99JD_Zeuspet.Web.Services
 @inject VeterinariaService Service
+@inject SesionService Sesion
 
 <div class="zeus-shell">
     <ZeusNavbar Active="Activity" />
@@ -18,7 +19,7 @@
         </div>
 
         <div class="activities-toolbar">
-            <label class="activity-filter">Mascota<select class="zeus-input" @bind="MascotaSeleccionadaId"><option value="">Todas las mascotas</option>@foreach (var mascota in Mascotas){<option value="@mascota.Id">@mascota.Nombre</option>}</select></label>
+            <label class="activity-filter">Mascota<select class="zeus-input" @bind="MascotaSeleccionadaId">@if (EsVeterinario){<option value="">Todas las mascotas</option>}@foreach (var mascota in Mascotas){<option value="@mascota.Id">@mascota.Nombre</option>}</select></label>
             <div class="filter-tabs">@foreach (var filter in Filters){<button class="@(ActiveFilter == filter ? "selected" : "")" @onclick="() => ActiveFilter = filter">@filter</button>}</div>
         </div>
 
@@ -63,6 +64,8 @@
     private string? ToastMessage { get; set; }
     private CancellationTokenSource? ToastCts;
 
+    private bool EsVeterinario => Sesion.Rol == "Veterinario";
+
     private List<Actividad> ActividadesFiltradas => TodasLasActividades
         .Where(activity => string.IsNullOrEmpty(MascotaSeleccionadaId) || activity.MascotaId == MascotaSeleccionadaId)
         .Where(activity => ActiveFilter == "All" || activity.Grupo == ActiveFilter)
@@ -71,8 +74,24 @@
 
     protected override void OnInitialized()
     {
-        Mascotas = Service.ListarMascotas();
-        TodasLasActividades = Service.ListarTodasLasActividades();
+        if (EsVeterinario)
+        {
+            Mascotas = Service.ListarMascotas();
+        }
+        else
+        {
+            var clienteId = string.IsNullOrWhiteSpace(Sesion.ClienteId)
+                ? Service.ListarClientes().FirstOrDefault()?.Id
+                : Sesion.ClienteId;
+            Mascotas = clienteId is null ? [] : Service.ListarMascotasDeCliente(clienteId);
+            if (Mascotas.Count > 0 && string.IsNullOrEmpty(MascotaSeleccionadaId))
+                MascotaSeleccionadaId = Mascotas[0].Id;
+        }
+
+        var mascotasPermitidas = Mascotas.Select(mascota => mascota.Id).ToHashSet();
+        TodasLasActividades = Service.ListarTodasLasActividades()
+            .Where(activity => mascotasPermitidas.Contains(activity.MascotaId))
+            .ToList();
     }
 
     private string NombreMascota(string mascotaId) => Mascotas.FirstOrDefault(mascota => mascota.Id == mascotaId)?.Nombre ?? "Mascota";
