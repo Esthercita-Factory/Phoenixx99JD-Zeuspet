@@ -6,20 +6,68 @@
 @inject NavigationManager Navigation
 
 <main class="welcome-page">
-    <header class="welcome-header">
+    <header class="welcome-pill-nav">
         <a class="zeus-logo" href="/" aria-label="ZeusPet inicio">
             <span class="logo-mark"><i class="icon icon-paw-print"></i></span>
             <span>zeus<span>pet</span></span>
         </a>
-        <span class="welcome-header-label">Cuidado que conecta</span>
+        <a class="zeus-btn-primary" href="#roles">Ingresar</a>
     </header>
 
     <section class="welcome-content" aria-labelledby="welcome-title">
-        <p class="eyebrow">Bienvenido a ZeusPet</p>
-        <h1 id="welcome-title">¿Cómo querés <em>ingresar hoy?</em></h1>
-        <p class="welcome-intro">Elegí tu modo de trabajo para continuar.</p>
+        <div class="hero-copy">
+            <p class="eyebrow">Bienvenido a ZeusPet</p>
+            <h1 id="welcome-title">Mascotas <em>felices</em>, familias tranquilas</h1>
+            <p class="welcome-intro">Todo lo que necesitan, en un solo lugar.</p>
+            <a class="zeus-btn-primary" href="#roles">Empezar ahora</a>
+        </div>
 
-        <div class="role-options">
+        <div class="hero-visual">
+            <div class="orbit-item orbit-item--main">
+                <div class="hover-scale">
+                    <div class="photo-inner">
+                        <div class="hero-photo-main">
+                            <img src="images/hero/golden-retriever.png" alt="Golden retriever" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-orbit-text" aria-hidden="true">
+                <svg viewBox="0 0 460 460" role="presentation">
+                    <defs>
+                        <path id="hero-orbit-path" d="M 100.2 85.8 A 194 194 0 0 1 359.8 85.8" fill="none" />
+                    </defs>
+                    <text text-anchor="middle">
+                        <textPath href="#hero-orbit-path" startOffset="50%" textLength="260" lengthAdjust="spacing">CUIDADO QUE CONECTA · ZEUSPET</textPath>
+                    </text>
+                </svg>
+            </div>
+
+            <div class="orbit-item orbit-item--top">
+                <div class="hover-scale">
+                    <div class="photo-inner">
+                        <div class="hero-photo-secondary hero-photo-secondary--top">
+                            <img src="images/hero/mini-lop.png" alt="Conejo mini lop" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="orbit-item orbit-item--bottom">
+                <div class="hover-scale">
+                    <div class="photo-inner">
+                        <div class="hero-photo-secondary hero-photo-secondary--bottom">
+                            <img src="images/hero/gato-blanco.png" alt="Gato blanco" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <i class="icon icon-paw-print hero-paw-accent" aria-hidden="true"></i>
+        </div>
+
+        <div class="role-options" id="roles">
             <button class="role-card role-card-owner" type="button" @onclick='() => SeleccionarRol("Usuario")'>
                 <span class="role-card-icon"><i class="icon icon-heart"></i></span>
                 <span class="role-card-copy">
@@ -37,6 +85,75 @@
                 </span>
                 <i class="icon icon-arrow-up-right role-card-arrow"></i>
             </button>
+        </div>
+    </section>
+
+    <section class="features-landing" aria-labelledby="features-title">
+        <div class="section-heading">
+            <p class="eyebrow">Todo lo que podés hacer</p>
+            <h2 id="features-title">Una plataforma, dos formas de cuidar</h2>
+        </div>
+        <div class="features-columns">
+            <div class="features-column features-column-owner">
+                <p class="features-column-title">Para dueños de mascota</p>
+                <div class="features-list">
+                    <article class="soft-card feature-item">
+                        <span class="feature-icon"><i class="icon icon-heart-pulse"></i></span>
+                        <div>
+                            <strong>Seguimiento de bienestar</strong>
+                            <p>Mirá cómo evoluciona el ánimo, la higiene y el comportamiento de tu mascota, evaluación tras evaluación.</p>
+                        </div>
+                    </article>
+                    <article class="soft-card feature-item">
+                        <span class="feature-icon"><i class="icon icon-calendar-check-2"></i></span>
+                        <div>
+                            <strong>Rutina de actividades</strong>
+                            <p>Organizá y seguí los momentos importantes del día a día de tu compañero.</p>
+                        </div>
+                    </article>
+                    <article class="soft-card feature-item">
+                        <span class="feature-icon"><i class="icon icon-message-circle"></i></span>
+                        <div>
+                            <strong>Comunidad ZeusPet</strong>
+                            <p>Compartí tips, preguntas y logros con otras familias que cuidan mascotas como vos.</p>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <div class="features-column features-column-vet">
+                <p class="features-column-title">Para veterinarios</p>
+                <div class="features-list">
+                    <article class="soft-card feature-item">
+                        <span class="feature-icon"><i class="icon icon-clipboard-list"></i></span>
+                        <div>
+                            <strong>Ficha clínica completa</strong>
+                            <p>Historial de consultas, evaluaciones y actividades de cada paciente, todo en un mismo lugar.</p>
+                        </div>
+                    </article>
+                    <article class="soft-card feature-item">
+                        <span class="feature-icon"><i class="icon icon-calendar-check-2"></i></span>
+                        <div>
+                            <strong>Agenda inteligente</strong>
+                            <p>Confirmá o rechazá solicitudes de citas y mantené tu semana organizada.</p>
+                        </div>
+                    </article>
+                    <article class="soft-card feature-item">
+                        <span class="feature-icon"><i class="icon icon-chart-no-axes-column"></i></span>
+                        <div>
+                            <strong>Reportes de la clínica</strong>
+                            <p>Estadísticas claras de pacientes, actividades y bienestar general.</p>
+                        </div>
+                    </article>
+                    <article class="soft-card feature-item">
+                        <span class="feature-icon"><i class="icon icon-users"></i></span>
+                        <div>
+                            <strong>Directorio de clientes</strong>
+                            <p>Gestioná la información de cada familia que confía en tu clínica.</p>
+                        </div>
+                    </article>
+                </div>
+            </div>
         </div>
     </section>
 
