@@ -1,4 +1,5 @@
 using Phoenixx99JD_Zeuspet.Models;
+using System.Text;
 
 namespace Phoenixx99JD_Zeuspet.Services;
 
@@ -286,5 +287,61 @@ public class VeterinariaService
         AgregarMascota("Nina", "Conejo", "Mini Lop", 2, c5.Id);
         // Mascota sin raza definida, para poder probar la consulta Any/All.
         AgregarMascota("Sombra", "Gato", "", 4, c5.Id);
+    }
+
+    // ============================================
+    // PROGRAMACION ASINCRONA (async / await, Task)
+    // ============================================
+
+    // Simula un proceso de la clinica (consulta, examen, analisis) que toma
+    // un tiempo determinado. Gracias a Task.Delay no bloquea el hilo principal.
+    private static async Task<string> SimularProcesoAsync(string nombre, int milisegundos)
+    {
+        await Task.Delay(milisegundos);
+        return $"Proceso '{nombre}' finalizado despues de {milisegundos} ms.";
+    }
+
+    // Genera varias secciones del reporte EN PARALELO. Task.WhenAll espera
+    // hasta que TODAS las tareas concluyan y agrupa sus resultados.
+    public async Task<IReadOnlyList<string>> GenerarReporteParaleloAsync()
+    {
+        Task<string> consultas = SimularProcesoAsync("Consultas", 300);
+        Task<string> vacunaciones = SimularProcesoAsync("Vacunaciones", 500);
+        Task<string> seguimientos = SimularProcesoAsync("Seguimientos", 200);
+
+        return await Task.WhenAll(consultas, vacunaciones, seguimientos);
+    }
+
+    // Ejecuta varios procesos de diagnostico en paralelo y se queda con el
+    // PRIMERO en finalizar mediante Task.WhenAny. Retorna esa unica tarea.
+    public async Task<(string Etiqueta, string Resultado)> EjecutarDiagnosticoRapidoAsync()
+    {
+        Task<string> consulta = SimularProcesoAsync("Consulta general", 500);
+        Task<string> analisis = SimularProcesoAsync("Analisis de sangre", 200);
+        Task<string> imagen = SimularProcesoAsync("Imagen radiografica", 400);
+
+        Task<string> masRapido = await Task.WhenAny(consulta, analisis, imagen);
+        return ("Diagnostico mas rapido", await masRapido);
+    }
+
+    // Escribe el reporte de la clinica en un archivo usando E/S asincrona,
+    // de modo que el hilo principal quede libre mientras se guarda.
+    public async Task<string> GuardarReporteAsync(string rutaArchivo)
+    {
+        IReadOnlyList<string> secciones = await GenerarReporteParaleloAsync();
+
+        var builder = new StringBuilder();
+        builder.AppendLine("=== REPORTE SEMANAL - CLINICA VETERINARIA ZEUSPET ===");
+        builder.AppendLine($"Generado: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        builder.AppendLine($"Clientes registrados: {_clientes.Count}");
+        builder.AppendLine($"Mascotas registradas: {_mascotas.Count}");
+        builder.AppendLine();
+        foreach (string seccion in secciones)
+            builder.AppendLine(seccion);
+        builder.AppendLine();
+        builder.AppendLine("=== FIN DEL REPORTE ===");
+
+        await File.WriteAllTextAsync(rutaArchivo, builder.ToString());
+        return rutaArchivo;
     }
 }

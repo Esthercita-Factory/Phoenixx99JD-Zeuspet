@@ -5,4 +5,5 @@
     <Project Path="Phoenixx99JD-Zeuspet.Web.Tests/Phoenixx99JD-Zeuspet.Web.Tests.csproj" />
   </Folder>
   <Project Path="Phoenixx99JD-Zeuspet.Web/Phoenixx99JD-Zeuspet.Web.csproj" />
+  <File Path="README.md" />
 </Solution>

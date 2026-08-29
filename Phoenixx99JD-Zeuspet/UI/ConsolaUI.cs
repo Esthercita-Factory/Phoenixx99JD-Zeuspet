@@ -364,4 +364,76 @@ public static class ConsolaUI
 
         Pausar();
     }
+
+    // ============================================
+    // SECCION 4: REPORTES ASINCRONOS (async/await)
+    // ============================================
+
+    public static async Task MenuReportesAsync()
+    {
+        System.Console.Clear();
+        DibujarEncabezado("REPORTES (PROGRAMACION ASINCRONA)");
+        System.Console.WriteLine("1. Generar reporte en paralelo (Task.WhenAll)");
+        System.Console.WriteLine("2. Diagnostico mas rapido (Task.WhenAny)");
+        System.Console.WriteLine("3. Guardar reporte en archivo (I/O async)");
+        System.Console.WriteLine("4. Volver");
+        System.Console.Write("\nOpcion: ");
+
+        switch (System.Console.ReadLine())
+        {
+            case "1": await GenerarReporteAsync(); break;
+            case "2": await EjecutarDiagnosticoRapidoAsync(); break;
+            case "3": await GuardarReporteAsync(); break;
+            case "4": break;
+            default:
+                System.Console.WriteLine("\nOpcion no valida.");
+                Pausar();
+                break;
+        }
+    }
+
+    private static async Task GenerarReporteAsync()
+    {
+        System.Console.Clear();
+        DibujarEncabezado("GENERAR REPORTE EN PARALELO (Task.WhenAll)");
+        System.Console.WriteLine("Ejecutando procesos en paralelo, espere...\n");
+
+        IReadOnlyList<string> secciones = await Service.GenerarReporteParaleloAsync();
+
+        foreach (string seccion in secciones)
+            System.Console.WriteLine("  " + seccion);
+
+        System.Console.WriteLine("\nTodas las secciones del reporte estan listas (Task.WhenAll).");
+        Pausar();
+    }
+
+    private static async Task EjecutarDiagnosticoRapidoAsync()
+    {
+        System.Console.Clear();
+        DibujarEncabezado("DIAGNOSTICO MAS RAPIDO (Task.WhenAny)");
+        System.Console.WriteLine("Ejecutando diagnosticos en paralelo, espere...\n");
+
+        var (etiqueta, resultado) = await Service.EjecutarDiagnosticoRapidoAsync();
+
+        System.Console.WriteLine($"  {etiqueta}: {resultado}");
+        System.Console.WriteLine("\nSolo se espero por el proceso que termino primero (Task.WhenAny).");
+        Pausar();
+    }
+
+    private static async Task GuardarReporteAsync()
+    {
+        System.Console.Clear();
+        DibujarEncabezado("GUARDAR REPORTE EN ARCHIVO (I/O async)");
+        System.Console.Write("Ruta del archivo (Enter para 'reporte-clinica.txt'): ");
+        var ruta = System.Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(ruta))
+            ruta = "reporte-clinica.txt";
+
+        System.Console.WriteLine("\nGenerando y guardando el reporte, espere...\n");
+        string archivo = await Service.GuardarReporteAsync(ruta);
+
+        System.Console.WriteLine($"Reporte guardado en: {archivo}");
+        System.Console.WriteLine("La escritura se realizo de forma asincrona sin bloquear el hilo principal.");
+        Pausar();
+    }
 }

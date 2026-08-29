@@ -521,4 +521,69 @@ public class VeterinariaServiceTests
         Assert.That(consulta.Atender(), Does.Contain("Consulta"));
         Assert.That(vacuna.Atender(), Does.Contain("Vacunacion"));
     }
+
+    // ============================================
+    // PROGRAMACION ASINCRONA (async / await, Task)
+    // ============================================
+
+    [Test]
+    public async Task GenerarReporteParaleloAsync_DeberiaRetornarLasTresSecciones()
+    {
+        IReadOnlyList<string> secciones = await _service.GenerarReporteParaleloAsync();
+
+        Assert.That(secciones, Is.Not.Null);
+        Assert.That(secciones.Count, Is.EqualTo(3));
+        Assert.That(secciones[0], Does.Contain("Consultas"));
+        Assert.That(secciones[1], Does.Contain("Vacunaciones"));
+        Assert.That(secciones[2], Does.Contain("Seguimientos"));
+    }
+
+    [Test]
+    public async Task EjecutarDiagnosticoRapidoAsync_DeberiaRetornarUnResultadoNoVacio()
+    {
+        var (etiqueta, resultado) = await _service.EjecutarDiagnosticoRapidoAsync();
+
+        Assert.That(etiqueta, Is.EqualTo("Diagnostico mas rapido"));
+        Assert.That(resultado, Is.Not.Null);
+        Assert.That(resultado, Is.Not.Empty);
+    }
+
+    [Test]
+    public async Task GuardarReporteAsync_DeberiaCrearElArchivoEnDisco()
+    {
+        string rutaTemp = Path.Combine(Path.GetTempPath(), $"reporte-{Guid.NewGuid():N}.txt");
+
+        try
+        {
+            string archivo = await _service.GuardarReporteAsync(rutaTemp);
+
+            Assert.That(archivo, Is.EqualTo(rutaTemp));
+            Assert.That(File.Exists(rutaTemp), Is.True);
+            string contenido = await File.ReadAllTextAsync(rutaTemp);
+            Assert.That(contenido, Does.Contain("REPORTE SEMANAL"));
+            Assert.That(contenido, Does.Contain("Clientes registrados"));
+        }
+        finally
+        {
+            if (File.Exists(rutaTemp))
+                File.Delete(rutaTemp);
+        }
+    }
+
+    private static async Task<string> TareaCortaAsync() =>
+        await Task.Run(() => "corta");
+
+    private static async Task<string> TareaLargaAsync() =>
+        await Task.Run(async () => { await Task.Delay(300); return "larga"; });
+
+    [Test]
+    public async Task TaskWhenAny_DeberiaCompletarseConLaTareaMasRapida()
+    {
+        Task<string> corta = TareaCortaAsync();
+        Task<string> larga = TareaLargaAsync();
+
+        Task<string> completada = await Task.WhenAny(corta, larga);
+
+        Assert.That(await completada, Is.EqualTo("corta"));
+    }
 }
